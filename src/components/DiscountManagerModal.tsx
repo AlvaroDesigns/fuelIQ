@@ -171,25 +171,25 @@ export default function DiscountManagerModal({
                   key={rule.id}
                   className={`relative overflow-hidden rounded-3xl border transition-all duration-300 ${
                     rule.active
-                      ? 'bg-slate-50 dark:bg-gradient-to-r dark:from-white/[0.04] dark:to-white/[0.01] border-slate-200 dark:border-white/15 shadow-sm dark:shadow-xl'
-                      : 'bg-slate-100/60 dark:bg-black/40 border-slate-200/50 dark:border-white/5 opacity-50'
+                      ? 'bg-white dark:bg-[#141923] border-slate-300/80 dark:border-white/20 shadow-md dark:shadow-2xl'
+                      : 'bg-slate-100/80 dark:bg-[#0a0d14]/70 border-slate-200 dark:border-white/5 opacity-55'
                   }`}
                 >
                   {/* Waylet Coupon Ticket Notches on left border if coupon */}
                   {isCoupon && (
                     <>
-                      <div className="absolute -left-2.5 top-1/2 -mt-2.5 w-5 h-5 rounded-full bg-white dark:bg-[#080a0f] border-r border-slate-200 dark:border-white/15" />
+                      <div className="absolute -left-2.5 top-1/2 -mt-2.5 w-5 h-5 rounded-full bg-slate-50 dark:bg-[#080a0f] border-r border-slate-300 dark:border-white/20" />
                     </>
                   )}
 
                   <div className="p-5 flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3.5 flex-1">
-                      {/* Visual Icon (Gas Pump style like Waylet screenshot) */}
+                      {/* Visual Icon */}
                       <div
                         className={`w-11 h-11 rounded-2xl flex items-center justify-center border text-xs font-black uppercase tracking-wider shrink-0 ${
                           rule.active
-                            ? 'bg-white dark:bg-gradient-to-br dark:from-zinc-700 dark:to-zinc-900 border-slate-200 dark:border-zinc-500 text-[#00A860] dark:text-[#00D97E] shadow-sm'
-                            : 'bg-slate-100 dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 text-slate-400 dark:text-zinc-600'
+                            ? 'bg-[#00D97E]/10 dark:bg-black/60 border-[#00D97E]/30 dark:border-white/10 text-[#00A860] dark:text-[#00D97E] shadow-sm'
+                            : 'bg-slate-200 dark:bg-black/40 border-slate-300 dark:border-white/5 text-slate-400 dark:text-zinc-600'
                         }`}
                       >
                         <Fuel className="w-5 h-5" />
@@ -197,14 +197,14 @@ export default function DiscountManagerModal({
 
                       <div className="space-y-1.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">
+                          <span className="font-black text-sm text-slate-950 dark:text-white tracking-tight">
                             {rule.name}
                           </span>
-                          <span className="bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 text-slate-700 dark:text-zinc-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                          <span className="bg-slate-200/80 dark:bg-white/10 border border-slate-300/80 dark:border-white/15 text-slate-800 dark:text-zinc-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">
                             {rule.brand === 'ALL' ? 'Todas las marcas' : rule.brand}
                           </span>
                           {rule.stackable && (
-                            <span className="bg-[#00D97E]/15 text-[#00A860] dark:text-[#00D97E] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            <span className="bg-[#00D97E]/15 text-[#00A860] dark:text-[#00D97E] font-black text-[10px] px-2.5 py-0.5 rounded-full">
                               Acumulable +
                             </span>
                           )}
@@ -218,7 +218,7 @@ export default function DiscountManagerModal({
                           <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-zinc-400 pt-1 font-medium">
                             {rule.maxLiters && <span>Hasta {rule.maxLiters}L</span>}
                             {rule.expiresAt && (
-                              <span className="flex items-center gap-1 text-slate-500 dark:text-zinc-400">
+                              <span className="flex items-center gap-1 text-slate-600 dark:text-zinc-400">
                                 <Calendar className="w-3 h-3 text-[#00A860] dark:text-[#00D97E]" />
                                 {rule.expiresAt}
                               </span>
