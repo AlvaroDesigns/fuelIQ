@@ -197,4 +197,54 @@ export const DEFAULT_LOYALTY_PROGRAMS: DiscountRule[] = [
     active: false,
     isCustom: false,
   },
+
+  // 4. PROGRAMAS & SUSCRIPCIONES COCHES ELÉCTRICOS (EV)
+  {
+    id: 'ev-tesla-membership',
+    name: 'Membresía Tesla Supercharger',
+    brand: 'TESLA',
+    category: 'plan',
+    description: 'Tarifa reducida en todos los Supercargadores Tesla para vehículos no-Tesla y Tesla',
+    tag: 'Tesla Club',
+    discountType: 'FIXED_PER_LITER',
+    value: 0.10, // -0.10 €/kWh
+    active: false,
+    isCustom: false,
+  },
+  {
+    id: 'ev-ionity-passport',
+    name: 'Ionity Passport',
+    brand: 'IONITY',
+    category: 'plan',
+    description: 'Suscripción Ionity para recargas ultrarrápidas hasta 350kW a 0.39€/kWh',
+    tag: 'Ionity High Power',
+    discountType: 'FIXED_PER_LITER',
+    value: 0.26, // -0.26 €/kWh
+    active: false,
+    isCustom: false,
+  },
+  {
+    id: 'ev-zunder-club',
+    name: 'Zunder Club',
+    brand: 'ZUNDER',
+    category: 'card',
+    description: 'Descuento directo en toda la red de recarga ultrarrápida Zunder',
+    tag: 'Zunder Pass',
+    discountType: 'FIXED_PER_LITER',
+    value: 0.13, // -0.13 €/kWh
+    active: false,
+    isCustom: false,
+  },
+  {
+    id: 'ev-iberdrola-plan-ev',
+    name: 'Iberdrola / bp pulse Plan Recarga',
+    brand: 'IBERDROLA',
+    category: 'plan',
+    description: 'Tarifa bonificada para clientes de energía Iberdrola o suscripción bp pulse',
+    tag: 'Iberdrola Clientes',
+    discountType: 'FIXED_PER_LITER',
+    value: 0.12,
+    active: false,
+    isCustom: false,
+  },
 ];
