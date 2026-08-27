@@ -1,17 +1,31 @@
-// Normalized EV Charger Types according to Technical Specification (RIPREE / MITECO & OCPI 2.2.1)
+// EV Charger Aggregator - Normalized Multi-Source Domain Types
 
 export type ChargerStatus = 'AVAILABLE' | 'OCCUPIED' | 'OUT_OF_ORDER' | 'UNKNOWN';
 
-export type NormalizedConnectorType = 'CCS' | 'TYPE_2' | 'CHADEMO' | 'TESLA' | 'SCHUKO' | 'OTHER';
+export type NormalizedConnectorType = 'CCS' | 'TYPE_2' | 'CHADEMO' | 'TESLA' | 'TYPE_1' | 'SCHUKO' | 'OTHER';
+
+export type SourceType = 'MITECO' | 'GOOGLE' | 'OSM' | 'OCPI' | 'OPERATOR' | 'CACHED';
+
+export interface ChargerSourceRecord {
+  source: SourceType;
+  externalId: string;
+  lastSeen: string;
+}
+
+export interface ChargerConfidence {
+  score: number;
+  sources: SourceType[];
+  verified: boolean;
+}
 
 export interface NormalizedConnector {
   id: string;
   type: NormalizedConnectorType;
   format?: 'CABLE' | 'SOCKET';
-  powerKw: number;
+  powerKw?: number;
   voltage?: number;
   amperage?: number;
-  status: ChargerStatus;
+  status?: ChargerStatus;
 }
 
 export interface NormalizedEVSE {
@@ -24,7 +38,8 @@ export interface NormalizedEVSE {
 
 export interface NormalizedCharger {
   id: string;
-  externalId: string;
+  externalId?: string;
+  externalIds?: { source: string; id: string }[];
   operator: {
     id: string;
     name: string;
@@ -36,29 +51,34 @@ export interface NormalizedCharger {
     longitude: number;
   };
   address: {
-    street: string;
-    city: string;
-    postalCode: string;
+    street?: string;
+    city?: string;
+    postalCode?: string;
     province?: string;
-    country: string;
+    country?: string;
   };
   powerKw: number;
+  distanceKm?: number;
+  status?: ChargerStatus;
+  confidenceScore?: number;
   isUltraFast: boolean; // >= 150 kW
   isFast: boolean;      // 50-149 kW
   evses: NormalizedEVSE[];
-  pricing: {
+  sources?: SourceType[];
+  source?: {
+    type: string;
+    lastUpdated: string;
+  };
+  sourceRecords?: ChargerSourceRecord[];
+  pricing?: {
     pricePerKwh: number;
     memberPricePerKwh?: number;
     currency: string;
   };
   schedule?: string;
-  isOpen24h: boolean;
+  isOpen24h?: boolean;
   amenities?: string[];
-  distanceKm?: number;
-  source: {
-    type: 'RIPREE_MITECO' | 'OCPI' | 'OPERATOR_DIRECT' | 'CACHED';
-    lastUpdated: string;
-  };
+  lastUpdated?: string;
 }
 
 export interface ChargerQueryFilter {
@@ -66,10 +86,11 @@ export interface ChargerQueryFilter {
   lng: number;
   radiusKm: number;
   minPowerKw?: number;
+  maxPowerKw?: number;
   connector?: NormalizedConnectorType | 'ALL';
   operator?: string | 'ALL';
   status?: ChargerStatus | 'ALL';
-  sortBy?: 'distance' | 'power' | 'price' | 'smartScore';
+  limit?: number;
 }
 
 export interface ChargerApiResponse {

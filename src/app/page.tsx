@@ -5,8 +5,6 @@ import dynamic from 'next/dynamic';
 import { CalculatedStation, DiscountRule, FuelType, FUEL_TYPES } from '@/lib/types/fuel';
 import { CalculatedEVStation, EVConnectorType, EVPowerCategory } from '@/lib/types/ev';
 import { DEFAULT_LOYALTY_PROGRAMS } from '@/lib/data/seed-programs';
-import { SEED_EV_STATIONS } from '@/lib/data/seed-ev-stations';
-import { EVCalculatorEngine } from '@/lib/engine/ev-calculator';
 import Navbar from '@/components/Navbar';
 import FilterBar from '@/components/FilterBar';
 import StationCard from '@/components/StationCard';
@@ -211,10 +209,14 @@ export default function FuelIQHome() {
       const res = await fetch('/api/stats');
       if (res.ok) {
         const data = await res.json();
-        setTotalDbStations(data.totalStations || 0);
-        if (data.lastSync) {
-          const d = new Date(data.lastSync);
-          setLastSyncTime(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        const count = data.stationsTotal ?? data.totalStations ?? 0;
+        setTotalDbStations(count);
+        const syncDate = data.lastSync?.finishedAt || data.lastSync?.startedAt || (typeof data.lastSync === 'string' ? data.lastSync : null);
+        if (syncDate) {
+          const d = new Date(syncDate);
+          if (!isNaN(d.getTime())) {
+            setLastSyncTime(d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+          }
         }
       }
     } catch (err) {

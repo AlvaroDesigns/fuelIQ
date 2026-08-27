@@ -276,31 +276,29 @@ export default function MapView({
       evStations.forEach((item, index) => {
         const isBest = index === 0;
         const isSelected = selectedStationId === item.station.id;
-        const isUltra = item.station.maxPowerKw >= 150;
 
-        let pinClasses = isUltra
-          ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-black border-cyan-400 font-black shadow-cyan-500/30"
-          : "bg-cyan-950 text-cyan-200 border-cyan-500/40 shadow-md";
+        // Pure vibrant green pins with NO border to distinguish EV from fuel
+        let pinClasses = "bg-[#00D97E] text-slate-950 font-black shadow-lg shadow-[#00D97E]/30 border-0";
         let zIndex = 600 - index;
 
         if (isBest) {
           pinClasses =
-            "bg-[#00D97E] text-black font-black border-[#00B86B] shadow-xl shadow-[#00D97E]/40 scale-110 ring-2 ring-cyan-400";
+            "bg-[#00D97E] text-slate-950 font-black shadow-2xl shadow-[#00D97E]/60 scale-110 border-0 ring-2 ring-black/20";
           zIndex = 1700;
         } else if (isSelected) {
           pinClasses =
-            "bg-white text-black font-black border-cyan-400 shadow-xl scale-110 ring-2 ring-cyan-500";
+            "bg-[#00D97E] text-slate-950 font-black shadow-2xl scale-110 border-0 ring-2 ring-white";
           zIndex = 1800;
         }
 
         const iconHtml = `
           <div class="cursor-pointer transform transition-all hover:scale-125 hover:z-[9999]">
             <div class="flex flex-col items-center">
-              <div class="px-2 py-0.5 rounded-full text-[11px] font-extrabold border flex items-center gap-1 whitespace-nowrap shadow-lg ${pinClasses}">
+              <div class="px-2.5 py-0.5 rounded-full text-[11px] font-black flex items-center gap-1 whitespace-nowrap ${pinClasses}">
                 <span class="text-[10px]">⚡</span>
                 <span>${item.effectivePricePerKwh.toFixed(2)} €/kWh</span>
               </div>
-              <div class="w-1.5 h-1.5 rotate-45 -mt-0.5 border-r border-b ${pinClasses}"></div>
+              <div class="w-2 h-2 rotate-45 -mt-1 bg-[#00D97E]"></div>
             </div>
           </div>
         `;

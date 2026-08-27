@@ -29,6 +29,7 @@ export async function GET() {
 
     return NextResponse.json({
       stationsTotal: stationCount,
+      totalStations: stationCount,
       pricesTotal: priceCount,
       lastSync: lastSync
         ? {

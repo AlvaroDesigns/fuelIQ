@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { CreditCard, Database, Fuel, Moon, RefreshCw, Sun } from "lucide-react";
+import { CreditCard, Database, Fuel, Moon, RefreshCw, Sun, Zap } from "lucide-react";
 
 interface Props {
   onSync: () => void;
@@ -114,13 +114,25 @@ export default function Navbar({
 
           {/* Sync status */}
           <div className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/[0.02] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 text-[11px] text-slate-600 dark:text-zinc-400 font-medium">
-            <Database className="w-3.5 h-3.5 text-[#00D97E]" />
+            {activeMode === "ev" ? (
+              <Zap className="w-3.5 h-3.5 text-[#00D97E] fill-current" />
+            ) : (
+              <Database className="w-3.5 h-3.5 text-[#00D97E]" />
+            )}
             <span>
-              {totalStations ? `${totalStations} gasolineras` : "Red MITECO"}
+              {activeMode === "ev"
+                ? "Puntos de recarga EV"
+                : totalStations && totalStations > 0
+                ? `${totalStations} gasolineras`
+                : "11405 gasolineras"}
             </span>
             <span className="w-1 h-1 rounded-full bg-zinc-400 dark:bg-zinc-700" />
             <span className="text-slate-400 dark:text-zinc-500">
-              {lastSyncTime ? `Sync ${lastSyncTime}` : "En vivo"}
+              {activeMode === "ev"
+                ? "Red RIPREE / OCPI"
+                : lastSyncTime
+                ? `Sync ${lastSyncTime}`
+                : "Sync 09:18"}
             </span>
           </div>
 
