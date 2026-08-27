@@ -31,11 +31,11 @@ export default function FuelIQHome() {
   // Theme state (Light / Dark)
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
-  // State (Default to Palma de Mallorca)
+  // State (Default to Madrid)
   const [selectedFuel, setSelectedFuel] = useState<FuelType>('GASOLINA_95_E5');
-  const [userLat, setUserLat] = useState<number>(39.5696);
-  const [userLng, setUserLng] = useState<number>(2.6502);
-  const [selectedCityName, setSelectedCityName] = useState<string>('Palma de Mallorca');
+  const [userLat, setUserLat] = useState<number>(40.4168);
+  const [userLng, setUserLng] = useState<number>(-3.7038);
+  const [selectedCityName, setSelectedCityName] = useState<string>('Madrid');
   const [radius, setRadius] = useState<number>(10);
   const [tankCapacity, setTankCapacity] = useState<number>(50);
   const [sortBy, setSortBy] = useState<'finalPrice' | 'distance' | 'tankSaving' | 'officialPrice' | 'smartScore'>('finalPrice');
@@ -67,6 +67,36 @@ export default function FuelIQHome() {
   const [totalDbStations, setTotalDbStations] = useState<number>(0);
   const [syncToast, setSyncToast] = useState<string | null>(null);
 
+  // Reverse geocode & apply coordinates helper
+  const applyCoordinates = async (lat: number, lng: number, fallbackName?: string) => {
+    setUserLat(lat);
+    setUserLng(lng);
+    setSelectedStationId(null);
+    try {
+      const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+      if (res.ok) {
+        const data = await res.json();
+        const detectedName = data.name || data.municipality || fallbackName || 'Mi Ubicación';
+        setSelectedCityName(detectedName);
+        try {
+          localStorage.setItem(
+            'fueliq_last_location',
+            JSON.stringify({ lat, lng, name: detectedName })
+          );
+        } catch {}
+        return;
+      }
+    } catch {}
+    const finalName = fallbackName || 'Mi Ubicación';
+    setSelectedCityName(finalName);
+    try {
+      localStorage.setItem(
+        'fueliq_last_location',
+        JSON.stringify({ lat, lng, name: finalName })
+      );
+    } catch {}
+  };
+
   // Initialize Theme from localStorage
   useEffect(() => {
     try {
@@ -97,19 +127,33 @@ export default function FuelIQHome() {
     } catch {}
   };
 
-  // Auto-detect user geolocation on page load
+  // Auto-detect user geolocation or restore last location on page load
   useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.geolocation) {
+    if (typeof window === 'undefined') return;
+
+    // 1. Restore last known user location from localStorage if present
+    try {
+      const saved = localStorage.getItem('fueliq_last_location');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.lat && parsed.lng) {
+          setUserLat(parsed.lat);
+          setUserLng(parsed.lng);
+          if (parsed.name) setSelectedCityName(parsed.name);
+        }
+      }
+    } catch {}
+
+    // 2. Request real-time GPS geolocation
+    if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
-          setSelectedCityName('Mi Ubicación GPS');
+          applyCoordinates(pos.coords.latitude, pos.coords.longitude);
         },
         (err) => {
-          console.log('GPS not granted, using Palma de Mallorca default', err);
+          console.log('GPS not granted or timed out, keeping default/saved location', err?.message);
         },
-        { timeout: 6000, enableHighAccuracy: true }
+        { timeout: 10000, enableHighAccuracy: false, maximumAge: 300000 }
       );
     }
   }, []);
@@ -272,17 +316,25 @@ export default function FuelIQHome() {
     setIsLocating(true);
     if (typeof window !== 'undefined' && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserLat(pos.coords.latitude);
-          setUserLng(pos.coords.longitude);
-          setSelectedCityName('Mi Ubicación GPS');
+        async (pos) => {
+          await applyCoordinates(pos.coords.latitude, pos.coords.longitude);
           setIsLocating(false);
         },
-        (err) => {
-          alert('No se pudo obtener tu ubicación GPS. Por favor, escribe tu municipio o código postal.');
-          setIsLocating(false);
+        () => {
+          // Retry with high accuracy if fast attempt timed out
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              await applyCoordinates(pos.coords.latitude, pos.coords.longitude);
+              setIsLocating(false);
+            },
+            () => {
+              alert('No se pudo acceder a tu ubicación GPS. Por favor, escribe tu municipio o código postal en el buscador.');
+              setIsLocating(false);
+            },
+            { timeout: 10000, enableHighAccuracy: true }
+          );
         },
-        { timeout: 8000, enableHighAccuracy: true }
+        { timeout: 8000, enableHighAccuracy: false, maximumAge: 60000 }
       );
     } else {
       setIsLocating(false);
@@ -520,6 +572,13 @@ export default function FuelIQHome() {
             setSelectedCityName(name);
             setUserLat(lat);
             setUserLng(lng);
+            setSelectedStationId(null);
+            try {
+              localStorage.setItem(
+                'fueliq_last_location',
+                JSON.stringify({ lat, lng, name })
+              );
+            } catch {}
           }}
           activeDiscountsCount={discounts.filter((d) => d.active).length}
           onOpenDiscountsModal={() => setIsDiscountsModalOpen(true)}
@@ -569,7 +628,8 @@ export default function FuelIQHome() {
               onLocationChange={(newLat, newLng) => {
                 setUserLat(newLat);
                 setUserLng(newLng);
-                setSelectedCityName('');
+                setSelectedStationId(null);
+                setSelectedCityName('Zona seleccionada en mapa');
               }}
               isLoading={isLoading}
             />

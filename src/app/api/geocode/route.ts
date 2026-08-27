@@ -18,6 +18,98 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get('q')?.trim();
+    const latParam = searchParams.get('lat');
+    const lngParam = searchParams.get('lng');
+
+    // 0. Reverse Geocoding if coordinates are provided
+    if (latParam && lngParam) {
+      const lat = parseFloat(latParam);
+      const lng = parseFloat(lngParam);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        // Query Nominatim Reverse
+        try {
+          const revUrl = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`;
+          const osmRes = await fetch(revUrl, {
+            headers: {
+              'User-Agent': 'FuelIQ-App/1.0 (info@fueliq.es)',
+              'Accept-Language': 'es-ES,es;q=0.9',
+            },
+            next: { revalidate: 86400 },
+          });
+
+          if (osmRes.ok) {
+            const item = await osmRes.json();
+            const addr = item.address || {};
+            const city =
+              addr.village ||
+              addr.town ||
+              addr.city ||
+              addr.municipality ||
+              addr.hamlet ||
+              addr.county ||
+              '';
+            const prov = addr.state_district || addr.province || addr.state || '';
+            const postalCode = addr.postcode || '';
+
+            if (city) {
+              return NextResponse.json({
+                success: true,
+                name: city,
+                municipality: city,
+                province: prov,
+                postalCode,
+                displayName: `${city}${prov && prov !== city ? `, ${prov}` : ''}`,
+                lat,
+                lng,
+                source: 'osm',
+              });
+            }
+          }
+        } catch (err) {
+          console.warn('OSM reverse geocoding error:', err);
+        }
+
+        // Database nearest station fallback
+        try {
+          const nearest = await prisma.station.findFirst({
+            where: {
+              latitude: { gte: lat - 0.2, lte: lat + 0.2 },
+              longitude: { gte: lng - 0.2, lte: lng + 0.2 },
+            },
+            select: {
+              municipality: true,
+              province: true,
+              postalCode: true,
+            },
+          });
+
+          if (nearest && nearest.municipality) {
+            return NextResponse.json({
+              success: true,
+              name: nearest.municipality,
+              municipality: nearest.municipality,
+              province: nearest.province,
+              postalCode: nearest.postalCode,
+              displayName: `${nearest.municipality}${nearest.province ? `, ${nearest.province}` : ''}`,
+              lat,
+              lng,
+              source: 'database',
+            });
+          }
+        } catch {}
+
+        return NextResponse.json({
+          success: true,
+          name: 'Mi Ubicación',
+          municipality: 'Mi Ubicación',
+          province: '',
+          displayName: 'Mi Ubicación',
+          lat,
+          lng,
+          source: 'default',
+        });
+      }
+    }
 
     if (!query) {
       return NextResponse.json({ results: [] });

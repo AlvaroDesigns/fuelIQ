@@ -11,8 +11,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
-      lat = 39.5696,
-      lng = 2.6502,
+      lat = 40.4168,
+      lng = -3.7038,
       radius = 25,
       powerCategory = 'ALL' as EVPowerCategory,
       connectors = [] as EVConnectorType[],
@@ -100,8 +100,8 @@ export async function POST(req: Request) {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const lat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 39.5696;
-    const lng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : 2.6502;
+    const lat = searchParams.get('lat') ? parseFloat(searchParams.get('lat')!) : 40.4168;
+    const lng = searchParams.get('lng') ? parseFloat(searchParams.get('lng')!) : -3.7038;
     const radius = searchParams.get('radius') ? parseFloat(searchParams.get('radius')!) : 25;
     const powerCategory = (searchParams.get('powerCategory') as EVPowerCategory) || 'ALL';
     const batteryCapacityKwh = searchParams.get('battery') ? parseFloat(searchParams.get('battery')!) : 60;

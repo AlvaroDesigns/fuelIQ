@@ -54,7 +54,7 @@ export default function MapView({
           ? stations[0].station.latitude
           : activeMode === "ev" && evStations.length > 0
             ? evStations[0].station.latitude
-            : 39.5696);
+            : 40.4168);
 
       const initialLng =
         userLng ||
@@ -62,7 +62,7 @@ export default function MapView({
           ? stations[0].station.longitude
           : activeMode === "ev" && evStations.length > 0
             ? evStations[0].station.longitude
-            : 2.6502);
+            : -3.7038);
 
       const map = L.map(mapContainerRef.current, {
         center: [initialLat, initialLng],

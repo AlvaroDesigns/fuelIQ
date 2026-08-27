@@ -13,8 +13,8 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
 
-    const lat = parseFloat(searchParams.get('lat') || '39.5696');
-    const lng = parseFloat(searchParams.get('lng') || '2.6502');
+    const lat = parseFloat(searchParams.get('lat') || '40.4168');
+    const lng = parseFloat(searchParams.get('lng') || '-3.7038');
     const radiusKm = parseFloat(searchParams.get('radius') || '25');
     const minPowerKw = searchParams.get('minPower') ? parseFloat(searchParams.get('minPower')!) : undefined;
     const maxPowerKw = searchParams.get('maxPower') ? parseFloat(searchParams.get('maxPower')!) : undefined;
@@ -59,8 +59,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const {
-      lat = 39.5696,
-      lng = 2.6502,
+      lat = 40.4168,
+      lng = -3.7038,
       radius = 25,
       minPower,
       maxPower,
