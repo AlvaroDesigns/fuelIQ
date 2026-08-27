@@ -1,0 +1,119 @@
+// Prisma Schema for FuelIQ (PostgreSQL Neon)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Station {
+  id              String             @id @default(uuid())
+  ministryId      String             @unique // IDEESS from Ministry API
+  brand           String             // Rótulo normalizado (e.g. REPSOL, CEPSA, BP, PLENOIL)
+  rawBrand        String             // Rótulo original
+  name            String             // Nombre o referencia
+  address         String             // Dirección
+  locality        String?            // Localidad
+  municipality    String             // Municipio
+  municipalityId  String?            // ID Municipio
+  province        String             // Provincia
+  provinceId      String?            // ID Provincia
+  postalCode      String             // C.P.
+  latitude        Float              // Coordenada Latitud
+  longitude       Float              // Coordenada Longitud
+  schedule        String?            // Horario (e.g. L-D: 24H)
+  margin          String?            // D / I / N
+  saleType        String?            // P / R
+  isActive        Boolean            @default(true)
+  lastPriceSync   DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  prices          FuelPrice[]
+  priceHistory    FuelPriceHistory[]
+
+  @@index([latitude, longitude])
+  @@index([province])
+  @@index([municipality])
+  @@index([brand])
+}
+
+model FuelPrice {
+  id          String   @id @default(uuid())
+  stationId   String
+  station     Station  @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  fuelType    String   // GASOLINA_95_E5, GASOLEO_A, GASOLINA_98_E5, etc.
+  price       Float    // Precio en €/L (e.g. 1.529)
+  priceDate   DateTime @default(now())
+  source      String   @default("MINISTRY")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([stationId, fuelType])
+  @@index([fuelType, price])
+}
+
+model FuelPriceHistory {
+  id          String    @id @default(uuid())
+  stationId   String
+  station     Station   @relation(fields: [stationId], references: [id], onDelete: Cascade)
+  fuelType    String
+  price       Float
+  validFrom   DateTime  @default(now())
+  validTo     DateTime?
+  source      String    @default("MINISTRY")
+  createdAt   DateTime  @default(now())
+
+  @@index([stationId, fuelType, validFrom])
+}
+
+model DiscountProgram {
+  id           String         @id @default(uuid())
+  code         String         @unique // e.g. REPSOL_WAYLET, CEPSA_GOW, BP_ME, CARREFOUR_PASS
+  name         String         // e.g. "Repsol Waylet"
+  brand        String         // e.g. "REPSOL" or "ALL"
+  description  String         // e.g. "Descuento directo por litro con pago Waylet"
+  discountType String         // "FIXED_PER_LITER", "PERCENTAGE", "CASHBACK_PER_LITER"
+  defaultValue Float          // e.g. 0.10 (€) or 5 (%)
+  isOfficial   Boolean        @default(true)
+  active       Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  userDiscounts UserDiscount[]
+}
+
+model UserDiscount {
+  id               String          @id @default(uuid())
+  userId           String          @default("default-user")
+  programId        String?
+  program          DiscountProgram? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  customBrand      String?         // Si es un descuento manual para una marca específica
+  name             String          // Nombre descriptivo
+  discountType     String          // "FIXED_PER_LITER", "PERCENTAGE", "CASHBACK_PER_LITER"
+  value            Float           // Valor (e.g. 0.10)
+  maxMonthlyLiters Float?
+  validFrom        DateTime?
+  validUntil       DateTime?
+  active           Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@index([userId, active])
+}
+
+model SyncRun {
+  id               String    @id @default(uuid())
+  startedAt        DateTime  @default(now())
+  finishedAt       DateTime?
+  status           String    // "SUCCESS", "FAILED", "RUNNING"
+  stationsReceived Int       @default(0)
+  stationsUpdated  Int       @default(0)
+  pricesChanged    Int       @default(0)
+  errors           String?
+  source           String    @default("MINISTRY_REST")
+  createdAt        DateTime  @default(now())
+}

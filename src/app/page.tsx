@@ -1,69 +1,492 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { CalculatedStation, DiscountRule, FuelType, FUEL_TYPES } from '@/lib/types/fuel';
+import { DEFAULT_LOYALTY_PROGRAMS } from '@/lib/data/seed-programs';
+import Navbar from '@/components/Navbar';
+import FilterBar from '@/components/FilterBar';
+import StationCard from '@/components/StationCard';
+import DiscountManagerModal from '@/components/DiscountManagerModal';
+import CompareModal from '@/components/CompareModal';
+import { Button, Chip } from '@heroui/react';
+import { Sparkles, Layers, ArrowRight, ShieldCheck, CreditCard, Fuel, AlertCircle, RefreshCw } from 'lucide-react';
+
+// Dynamic import for Leaflet Map to avoid SSR errors
+const MapView = dynamic(() => import('@/components/Map'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full min-h-[380px] bg-slate-100 dark:bg-black/60 rounded-[2.5rem] flex items-center justify-center border border-black/10 dark:border-white/10 animate-pulse text-slate-500 dark:text-zinc-500 text-xs font-semibold">
+      Cargando mapa interactivo...
+    </div>
+  ),
+});
+
+export default function FuelIQHome() {
+  // Theme state (Light / Dark)
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // State (Default to Palma de Mallorca)
+  const [selectedFuel, setSelectedFuel] = useState<FuelType>('GASOLINA_95_E5');
+  const [userLat, setUserLat] = useState<number>(39.5696);
+  const [userLng, setUserLng] = useState<number>(2.6502);
+  const [selectedCityName, setSelectedCityName] = useState<string>('Palma de Mallorca');
+  const [radius, setRadius] = useState<number>(5);
+  const [tankCapacity, setTankCapacity] = useState<number>(50);
+  const [sortBy, setSortBy] = useState<'finalPrice' | 'distance' | 'tankSaving' | 'officialPrice' | 'smartScore'>('finalPrice');
+  const [discounts, setDiscounts] = useState<DiscountRule[]>(DEFAULT_LOYALTY_PROGRAMS);
+
+  // Results
+  const [stations, setStations] = useState<CalculatedStation[]>([]);
+  const [bestOption, setBestOption] = useState<CalculatedStation | null>(null);
+  const [selectedStationId, setSelectedStationId] = useState<string | null>(null);
+  const [comparedStationIds, setComparedStationIds] = useState<string[]>([]);
+  const [metrics, setMetrics] = useState<{
+    avgOfficialPrice: number;
+    avgFinalPrice: number;
+    maxSaving: number;
+  } | null>(null);
+
+  // Status & Modals
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [isLocating, setIsLocating] = useState<boolean>(false);
+  const [isDiscountsModalOpen, setIsDiscountsModalOpen] = useState<boolean>(false);
+  const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+  const [totalDbStations, setTotalDbStations] = useState<number>(0);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  // Initialize Theme from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('fueliq_theme');
+      if (saved === 'light' || saved === 'dark') {
+        setTheme(saved);
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      } else {
+        document.documentElement.classList.add('dark');
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    if (next === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    try {
+      localStorage.setItem('fueliq_theme', next);
+    } catch {}
+  };
+
+  // Auto-detect user geolocation on page load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLat(pos.coords.latitude);
+          setUserLng(pos.coords.longitude);
+          setSelectedCityName('Mi Ubicación GPS');
+        },
+        (err) => {
+          console.log('GPS not granted, using Palma de Mallorca default', err);
+        },
+        { timeout: 6000, enableHighAccuracy: true }
+      );
+    }
+  }, []);
+
+  // Load saved discounts from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('fueliq_user_discounts');
+      if (saved) {
+        setDiscounts(JSON.parse(saved));
+      }
+    } catch {}
+  }, []);
+
+  const handleUpdateDiscounts = (updated: DiscountRule[]) => {
+    setDiscounts(updated);
+    try {
+      localStorage.setItem('fueliq_user_discounts', JSON.stringify(updated));
+    } catch {}
+  };
+
+  // Fetch best prices
+  const fetchBestPrices = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/best-price', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lat: userLat,
+          lng: userLng,
+          radius,
+          fuel: selectedFuel,
+          tankCapacity,
+          sortBy,
+          discounts,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setStations(data.results || []);
+        setBestOption(data.bestOption || null);
+        setMetrics(data.metrics || null);
+      }
+    } catch (err) {
+      console.error('Error fetching prices:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [userLat, userLng, radius, selectedFuel, tankCapacity, sortBy, discounts]);
+
+  // Fetch stats
+  const fetchStats = async () => {
+    try {
+      const res = await fetch('/api/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setTotalDbStations(data.stationsTotal || 0);
+        if (data.lastSync?.finishedAt) {
+          const date = new Date(data.lastSync.finishedAt);
+          setLastSyncTime(date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }));
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching stats:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchBestPrices();
+  }, [fetchBestPrices]);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  // Geolocation trigger
+  const handleLocateUser = () => {
+    if (!navigator.geolocation) {
+      alert('Tu navegador no soporta geolocalización.');
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLat(pos.coords.latitude);
+        setUserLng(pos.coords.longitude);
+        setSelectedCityName('Mi Ubicación GPS');
+        setIsLocating(false);
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        setIsLocating(false);
+        alert('No se pudo obtener tu ubicación.');
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  // Sync trigger
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncToast('Sincronizando precios con la API del Ministerio...');
+    try {
+      const res = await fetch('/api/sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setSyncToast(`✓ Sincronizadas ${data.result.stationsUpdated} gasolineras.`);
+        await fetchStats();
+        await fetchBestPrices();
+      } else {
+        setSyncToast('Error durante la sincronización.');
+      }
+    } catch {
+      setSyncToast('Error de conexión.');
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncToast(null), 5000);
+    }
+  };
+
+  // Select station and smooth scroll into card
+  const handleSelectStation = (id: string) => {
+    setSelectedStationId(id);
+    const cardEl = document.getElementById(`station-card-${id}`);
+    if (cardEl) {
+      cardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Toggle compare station
+  const handleToggleCompare = (id: string) => {
+    setComparedStationIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
+      } else {
+        if (prev.length >= 3) {
+          alert('Puedes comparar un máximo de 3 gasolineras.');
+          return prev;
+        }
+        return [...prev, id];
+      }
+    });
+  };
+
+  const comparedStations = stations.filter((s) => comparedStationIds.includes(s.station.id));
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <div className="min-h-screen bg-[#f8f9fc] dark:bg-[#04060a] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-[#00D97E] selection:text-black transition-colors duration-300">
+      {/* Revolut-styled Navbar with theme toggle */}
+      <Navbar
+        onSync={handleSync}
+        isSyncing={isSyncing}
+        lastSyncTime={lastSyncTime}
+        totalStations={totalDbStations}
+        onOpenDiscountsModal={() => setIsDiscountsModalOpen(true)}
+        activeDiscountsCount={discounts.filter((d) => d.active).length}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+      />
+
+      {/* Sync toast notification */}
+      {syncToast && (
+        <div className="bg-[#00D97E] text-black px-4 py-2.5 text-center text-xs font-black tracking-wide sticky top-18 z-30 shadow-lg shadow-[#00D97E]/20">
+          {syncToast}
+        </div>
+      )}
+
+      {/* Main Container */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8 space-y-7">
+        {/* Revolut Hero Bento Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Main Hero Card */}
+          <div className="lg:col-span-8 revolut-card rounded-[2.5rem] p-7 sm:p-9 flex flex-col justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-gradient-to-br from-[#0075FF]/20 via-[#00D97E]/10 to-transparent rounded-full blur-3xl pointer-events-none" />
+
+            <div className="space-y-4 relative z-10">
+              {/* High-Contrast Crisp Hero Badges */}
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00D97E]/15 border border-[#00D97E]/35 text-[#00A860] dark:text-[#00D97E] text-[11px] font-black tracking-wider uppercase shadow-sm">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Descuento Personalizado</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/5 dark:bg-white/10 text-slate-700 dark:text-zinc-200 border border-slate-900/10 dark:border-white/15 text-[11px] font-extrabold tracking-wide">
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#0075FF]" />
+                  <span>MITECO 100% Oficial</span>
+                </div>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white leading-[1.1]">
+                Tu combustible, al <br className="hidden sm:inline" />
+                <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-[#00A860] dark:from-white dark:via-zinc-200 dark:to-[#00D97E] bg-clip-text text-transparent">
+                  tipo de cambio real
+                </span>
+              </h1>
+
+              <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 font-medium max-w-xl leading-relaxed">
+                FuelIQ analiza los precios oficiales de surtidor y aplica automáticamente tus tarjetas de fidelización (Waylet, Cepsa Gow, BPme, ChequeAhorro) para decirte cuánto vas a pagar realmente.
+              </p>
+            </div>
+
+            <div className="pt-6 relative z-10 flex items-center gap-3 flex-wrap">
+              <Button
+                variant="primary"
+                onPress={() => setIsDiscountsModalOpen(true)}
+                className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:hover:bg-zinc-200 dark:text-black font-black text-xs rounded-full px-6 h-11 shadow-xl shadow-black/10 dark:shadow-white/10 flex items-center gap-2"
+              >
+                <span>Configurar mis Tarjetas ({discounts.filter((d) => d.active).length})</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* KPI Widget Cards (Revolut Vault aesthetic) */}
+          <div className="lg:col-span-4 flex flex-col sm:flex-row lg:flex-col gap-4">
+            {/* Max Savings Widget */}
+            <div className="flex-1 revolut-card-glow rounded-[2rem] p-6 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#00A860] dark:text-[#00D97E]">
+                  Ahorro Máx en Llenado
+                </span>
+                <span className="w-2 h-2 rounded-full bg-[#00D97E] animate-ping" />
+              </div>
+              <div className="my-2">
+                <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                  +{metrics ? metrics.maxSaving.toFixed(2) : '0.00'}{' '}
+                  <span className="text-xl text-[#00A860] dark:text-[#00D97E]">€</span>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-1">
+                  En un solo depósito de {tankCapacity} Litros
+                </div>
+              </div>
+            </div>
+
+            {/* Average Price Widget */}
+            <div className="flex-1 revolut-card rounded-[2rem] p-6 flex flex-col justify-between">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
+                Precio Efectivo Medio
+              </span>
+              <div className="my-2">
+                <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {metrics ? metrics.avgFinalPrice.toFixed(3) : '1.429'}{' '}
+                  <span className="text-base text-slate-500 dark:text-zinc-400 font-bold">€/L</span>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-1">
+                  {FUEL_TYPES[selectedFuel].label} en tu zona
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Bar with HeroUI & Revolut Style */}
+        <FilterBar
+          selectedFuel={selectedFuel}
+          onSelectFuel={setSelectedFuel}
+          radius={radius}
+          onSelectRadius={setRadius}
+          tankCapacity={tankCapacity}
+          onChangeTankCapacity={setTankCapacity}
+          sortBy={sortBy}
+          onChangeSortBy={setSortBy}
+          onLocateUser={handleLocateUser}
+          isLocating={isLocating}
+          selectedCityName={selectedCityName}
+          onSelectCity={(name, lat, lng) => {
+            setSelectedCityName(name);
+            setUserLat(lat);
+            setUserLng(lng);
+          }}
+          activeDiscountsCount={discounts.filter((d) => d.active).length}
+          onOpenDiscountsModal={() => setIsDiscountsModalOpen(true)}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+        {/* Floating Compare Button */}
+        {comparedStationIds.length > 0 && (
+          <div className="fixed bottom-6 right-6 z-40 animate-bounce">
+            <Button
+              variant="primary"
+              onPress={() => setIsCompareModalOpen(true)}
+              className="bg-[#0075FF] hover:bg-[#0060d0] text-white font-black text-sm rounded-full px-6 h-12 shadow-2xl shadow-[#0075FF]/50 border border-white/20 flex items-center gap-2"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+              <Layers className="w-5 h-5" />
+              <span>Ver Comparativa ({comparedStationIds.length})</span>
+            </Button>
+          </div>
+        )}
+
+        {/* TOP SECTION: Full-Width Interactive Map */}
+        <section className="w-full space-y-2">
+          <div className="flex items-center justify-between px-2">
+            <span className="text-xs font-black uppercase tracking-wider text-slate-600 dark:text-zinc-400 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#00D97E] animate-pulse" />
+              Mapa en vivo · {stations.length} gasolineras
+            </span>
+            <span className="text-xs text-[#00A860] dark:text-[#00D97E] font-bold">
+              Radio de {radius} km
+            </span>
+          </div>
+
+          <div className="h-[380px] sm:h-[460px] lg:h-[500px] w-full">
+            <MapView
+              stations={stations}
+              selectedStationId={selectedStationId}
+              onSelectStation={handleSelectStation}
+              userLat={userLat}
+              userLng={userLng}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+          </div>
+        </section>
+
+        {/* BOTTOM SECTION: Ranked Station Cards Grid */}
+        <section className="space-y-4 pt-2">
+          <div className="flex items-center justify-between px-2 border-b border-black/5 dark:border-white/5 pb-3">
+            <div>
+              <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                Gasolineras ordenadas para ti
+              </h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                Con tus descuentos personales y coste de depósito aplicado
+              </p>
+            </div>
+            <span className="text-xs font-bold text-slate-600 dark:text-zinc-400 bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-full border border-black/5 dark:border-white/10">
+              {stations.length} resultados
+            </span>
+          </div>
+
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3, 4, 5, 6].map((n) => (
+                <div
+                  key={n}
+                  className="p-6 rounded-[2rem] bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 animate-pulse h-56"
+                />
+              ))}
+            </div>
+          ) : stations.length === 0 ? (
+            <div className="p-12 text-center rounded-[2.5rem] revolut-card space-y-4 max-w-xl mx-auto">
+              <AlertCircle className="w-12 h-12 text-amber-400 mx-auto" />
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">No hay gasolineras en este radio</h3>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
+                Prueba aumentando el radio de búsqueda o seleccionando otra ubicación.
+              </p>
+              <Button
+                variant="outline"
+                onPress={() => setRadius(15)}
+                className="bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 text-slate-900 dark:text-white text-xs font-bold rounded-full px-6 h-10 border-black/10 dark:border-white/10"
+              >
+                Ampliar a 15 km
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {stations.map((st, index) => (
+                <StationCard
+                  key={st.station.id}
+                  data={st}
+                  rank={index + 1}
+                  isSelected={selectedStationId === st.station.id}
+                  onSelect={handleSelectStation}
+                  isCompared={comparedStationIds.includes(st.station.id)}
+                  onToggleCompare={handleToggleCompare}
+                  tankCapacity={tankCapacity}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       </main>
+
+      {/* HeroUI Modals */}
+      <DiscountManagerModal
+        isOpen={isDiscountsModalOpen}
+        onClose={() => setIsDiscountsModalOpen(false)}
+        discounts={discounts}
+        onUpdateDiscounts={handleUpdateDiscounts}
+      />
+
+      <CompareModal
+        isOpen={isCompareModalOpen}
+        onClose={() => setIsCompareModalOpen(false)}
+        stations={comparedStations}
+        onRemoveStation={(id) => handleToggleCompare(id)}
+        tankCapacity={tankCapacity}
+      />
     </div>
   );
 }

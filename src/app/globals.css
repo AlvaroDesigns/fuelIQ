@@ -1,26 +1,147 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8f9fc;
+  --foreground: #090d16;
+  --revolut-blue: #0075ff;
+  --revolut-green: #00b86b;
+  --revolut-purple: #8000ff;
+  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-border: rgba(0, 0, 0, 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #04060a;
+  --foreground: #ffffff;
+  --revolut-blue: #0075ff;
+  --revolut-green: #00d97e;
+  --revolut-purple: #8000ff;
+  --card-bg: linear-gradient(180deg, rgba(22, 25, 35, 0.75) 0%, rgba(10, 12, 18, 0.9) 100%);
+  --card-border: rgba(255, 255, 255, 0.08);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1c1f26;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #2a2e39;
+}
+
+/* Revolut Glass Card Effects - Light & Dark */
+.revolut-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dark .revolut-card {
+  background: linear-gradient(180deg, rgba(22, 25, 35, 0.75) 0%, rgba(10, 12, 18, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7);
+}
+
+.revolut-card:hover {
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.dark .revolut-card:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.revolut-card-glow {
+  background: linear-gradient(180deg, rgba(236, 253, 245, 0.95) 0%, rgba(255, 255, 255, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 217, 126, 0.4);
+  box-shadow: 0 10px 30px -5px rgba(0, 217, 126, 0.15);
+  transition: all 0.3s ease;
+}
+
+.dark .revolut-card-glow {
+  background: linear-gradient(180deg, rgba(16, 28, 24, 0.85) 0%, rgba(8, 14, 12, 0.95) 100%);
+  border: 1px solid rgba(0, 217, 126, 0.3);
+  box-shadow: 0 0 35px -5px rgba(0, 217, 126, 0.15);
+}
+
+.revolut-pill {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.dark .revolut-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Leaflet Google Maps Style Styling */
+.leaflet-container {
+  font-family: inherit !important;
+  background-color: #f1f3f4 !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #0d1117 !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(20px) !important;
+  padding: 4px !important;
+}
+
+.leaflet-popup-tip {
+  background: #0d1117 !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+.leaflet-popup-content a {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+.leaflet-popup-content a:hover {
+  color: #ffffff !important;
+}
+
+.station-price-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
+.custom-user-marker {
+  background: transparent !important;
+  border: none !important;
 }
