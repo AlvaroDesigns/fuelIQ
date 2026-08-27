@@ -1,0 +1,21 @@
+name: Sync MITECO Fuel Prices
+
+on:
+  schedule:
+    # Runs every 3 hours (completely free on GitHub Actions)
+    - cron: '0 */3 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Price Sync Endpoint
+        run: |
+          if [ -n "${{ secrets.PROD_APP_URL }}" ]; then
+            curl -X GET "${{ secrets.PROD_APP_URL }}/api/cron/sync" \
+              -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+              --fail --show-error
+          else
+            echo "PROD_APP_URL secret not set. Skipping."
+          fi

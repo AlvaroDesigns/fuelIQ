@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { SyncEngine } from '@/lib/sync/sync-engine';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // Allow up to 5 mins for full sync
+export const maxDuration = 60; // Max allowed on Vercel Hobby free tier
 
 export async function POST(req: Request) {
   try {
