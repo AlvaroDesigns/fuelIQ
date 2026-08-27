@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import Script from 'next/script';
 import './globals.css';
 import { HeroUIProvider } from '@/components/HeroUIProvider';
 
@@ -43,6 +44,22 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} min-h-screen antialiased selection:bg-[#00D97E] selection:text-black transition-colors duration-200`}>
+        {/* Google Analytics (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-7D9M8T0WEP"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-7D9M8T0WEP', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
         <HeroUIProvider>
           {children}
         </HeroUIProvider>
