@@ -33,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" className="dark bg-black text-foreground">
+    <html lang="es" className="dark">
       <head>
         <link
           rel="stylesheet"
@@ -42,7 +42,7 @@ export default function RootLayout({
           crossOrigin=""
         />
       </head>
-      <body className={`${inter.className} bg-[#04060a] text-white min-h-screen antialiased selection:bg-[#00D97E] selection:text-black`}>
+      <body className={`${inter.className} min-h-screen antialiased selection:bg-[#00D97E] selection:text-black transition-colors duration-200`}>
         <HeroUIProvider>
           {children}
         </HeroUIProvider>

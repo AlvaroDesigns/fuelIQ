@@ -250,7 +250,7 @@ export default function FuelIQHome() {
   const comparedStations = stations.filter((s) => comparedStationIds.includes(s.station.id));
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc] dark:bg-[#04060a] text-slate-900 dark:text-white flex flex-col font-sans selection:bg-[#00D97E] selection:text-black transition-colors duration-300">
+    <div className="min-h-screen flex flex-col font-sans selection:bg-[#00D97E] selection:text-black">
       {/* Revolut-styled Navbar with theme toggle */}
       <Navbar
         onSync={handleSync}
