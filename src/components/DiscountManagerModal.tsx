@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { DiscountRule, DiscountType, FuelType } from '@/lib/types/fuel';
+import { DEFAULT_LOYALTY_PROGRAMS } from '@/lib/data/seed-programs';
 import { Button, Chip } from '@heroui/react';
 import {
   CreditCard,
@@ -18,6 +19,7 @@ import {
   Layers,
   Fuel,
   ArrowLeft,
+  RotateCcw,
 } from 'lucide-react';
 
 interface Props {
@@ -53,6 +55,35 @@ export default function DiscountManagerModal({
   const handleChangeValue = (id: string, newVal: number) => {
     const updated = discounts.map((d) => (d.id === id ? { ...d, value: newVal } : d));
     onUpdateDiscounts(updated);
+  };
+
+  const handleSetType = (id: string, newType: DiscountType) => {
+    const updated = discounts.map((d) => {
+      if (d.id === id) {
+        if (d.discountType === newType) return d;
+        let nextVal = d.value;
+        if (newType === 'PERCENTAGE') {
+          if (d.value <= 0.50) {
+            nextVal = Math.round(d.value * 100 * 10) / 10;
+            if (nextVal <= 0) nextVal = 4;
+          }
+        } else if (newType === 'FIXED_PER_LITER') {
+          if (d.value >= 1.0) {
+            nextVal = Math.round((d.value / 100) * 1000) / 1000;
+            if (nextVal <= 0) nextVal = 0.04;
+          }
+        }
+        return { ...d, discountType: newType, value: nextVal };
+      }
+      return d;
+    });
+    onUpdateDiscounts(updated);
+  };
+
+  const handleResetDefaults = () => {
+    if (confirm('¿Quieres restablecer las tarjetas y cupones a sus valores predeterminados?')) {
+      onUpdateDiscounts(DEFAULT_LOYALTY_PROGRAMS);
+    }
   };
 
   const handleDeleteRule = (id: string) => {
@@ -118,12 +149,23 @@ export default function DiscountManagerModal({
             </div>
           </div>
 
-          <button
-            onClick={onClose}
-            className="p-2.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleResetDefaults}
+              title="Restablecer cupones y tarjetas a valores por defecto"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all text-xs font-bold"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Restablecer</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-2.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -237,27 +279,54 @@ export default function DiscountManagerModal({
                       </div>
                     </div>
 
-                    {/* Value editor + Toggle Switch */}
+                    {/* Value editor + Segmented Unit Switcher [ €/L | % ] + Toggle Switch */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="flex items-center bg-slate-100 dark:bg-black/80 border border-slate-300 dark:border-white/15 rounded-2xl px-3 py-2 text-xs font-bold shadow-sm">
-                        <span className="text-[#00A860] dark:text-[#00D97E] mr-1">-</span>
-                        <input
-                          type="number"
-                          step={rule.discountType === 'PERCENTAGE' ? '0.5' : '0.01'}
-                          min="0.01"
-                          max="100"
-                          value={rule.value}
-                          onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            if (!isNaN(v) && v >= 0) {
-                              handleChangeValue(rule.id, v);
-                            }
-                          }}
-                          className="w-12 bg-transparent text-right font-black text-[#00A860] dark:text-[#00D97E] focus:outline-none"
-                        />
-                        <span className="text-slate-600 dark:text-zinc-400 ml-1 text-[11px]">
-                          {rule.discountType === 'PERCENTAGE' ? '%' : '€/L'}
-                        </span>
+                      <div className="flex items-center bg-slate-100 dark:bg-black/80 border border-slate-300 dark:border-white/15 rounded-2xl p-1 shadow-sm gap-1">
+                        <div className="flex items-center pl-2 pr-1">
+                          <span className="text-[#00A860] dark:text-[#00D97E] mr-0.5 font-black text-xs">-</span>
+                          <input
+                            type="number"
+                            step={rule.discountType === 'PERCENTAGE' ? '0.5' : '0.01'}
+                            min="0.01"
+                            max="100"
+                            value={rule.value}
+                            onChange={(e) => {
+                              const v = parseFloat(e.target.value);
+                              if (!isNaN(v) && v >= 0) {
+                                handleChangeValue(rule.id, v);
+                              }
+                            }}
+                            className="w-12 bg-transparent text-right font-black text-[#00A860] dark:text-[#00D97E] focus:outline-none text-xs"
+                          />
+                        </div>
+
+                        {/* Segmented [ €/L | % ] selector buttons */}
+                        <div className="flex items-center bg-slate-200/90 dark:bg-white/10 p-0.5 rounded-xl border border-black/5 dark:border-white/10">
+                          <button
+                            type="button"
+                            onClick={() => handleSetType(rule.id, 'FIXED_PER_LITER')}
+                            title="Aplicar descuento directo en €/Litro"
+                            className={`px-2 py-1 rounded-lg text-[11px] transition-all cursor-pointer ${
+                              rule.discountType !== 'PERCENTAGE'
+                                ? 'bg-white dark:bg-[#1b2230] text-slate-950 dark:text-white font-black shadow-xs'
+                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white font-semibold'
+                            }`}
+                          >
+                            €/L
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSetType(rule.id, 'PERCENTAGE')}
+                            title="Aplicar descuento en Porcentaje (%)"
+                            className={`px-2 py-1 rounded-lg text-[11px] transition-all cursor-pointer ${
+                              rule.discountType === 'PERCENTAGE'
+                                ? 'bg-[#00D97E] text-slate-950 font-black shadow-xs'
+                                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white font-semibold'
+                            }`}
+                          >
+                            %
+                          </button>
+                        </div>
                       </div>
 
                       {/* Sleek Toggle Switch */}
