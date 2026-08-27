@@ -78,6 +78,8 @@ const QUICK_CITIES = [
   { name: "Málaga", cp: "29001", lat: 36.7213, lng: -4.4214 },
   { name: "A Coruña", cp: "15001", lat: 43.3623, lng: -8.4115 },
   { name: "Alicante", cp: "03001", lat: 38.3452, lng: -0.481 },
+  { name: "Villarrobledo", cp: "02600", lat: 39.2689, lng: -2.6041 },
+  { name: "Albacete", cp: "02001", lat: 38.9943, lng: -1.8585 },
 ];
 
 export default function FilterBar({

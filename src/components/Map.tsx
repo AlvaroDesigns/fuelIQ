@@ -3,8 +3,10 @@
 import { CalculatedEVStation } from "@/lib/types/ev";
 import { CalculatedStation } from "@/lib/types/fuel";
 import { getBrandInfo } from "@/lib/utils/brand-logos";
+import { DiscountEngine } from "@/lib/engine/discount-calculator";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { Loader2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface MapProps {
@@ -15,6 +17,8 @@ interface MapProps {
   onSelectStation: (stationId: string) => void;
   userLat?: number | null;
   userLng?: number | null;
+  onLocationChange?: (lat: number, lng: number) => void;
+  isLoading?: boolean;
 }
 
 export default function MapView({
@@ -25,13 +29,21 @@ export default function MapView({
   onSelectStation,
   userLat,
   userLng,
+  onLocationChange,
+  isLoading = false,
 }: MapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersGroupRef = useRef<L.LayerGroup | null>(null);
   const markersMapRef = useRef<Map<string, L.Marker>>(new Map());
 
-  // Initialize Map with balanced street-level city zoom
+  const onLocationChangeRef = useRef(onLocationChange);
+  onLocationChangeRef.current = onLocationChange;
+
+  // Track coordinates triggered by map drag to prevent unwanted map jump
+  const lastMapDragCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  // Initialize Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -54,7 +66,7 @@ export default function MapView({
 
       const map = L.map(mapContainerRef.current, {
         center: [initialLat, initialLng],
-        zoom: 9,
+        zoom: 11,
         zoomControl: false,
       });
 
@@ -68,21 +80,43 @@ export default function MapView({
         subdomains: ["a", "b", "c"],
       }).addTo(map);
 
+      // Handle user dragging / panning map -> Auto recalculate on drag end
+      const handleUserMovedMap = () => {
+        const center = map.getCenter();
+        lastMapDragCenterRef.current = { lat: center.lat, lng: center.lng };
+        onLocationChangeRef.current?.(center.lat, center.lng);
+      };
+
+      map.on("dragend", handleUserMovedMap);
+
       markersGroupRef.current = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
     }
-
-    return () => {
-      // Map instance preserved
-    };
   }, []);
 
-  // Update center when user position changes (initial or geolocate)
+  // Update center when coordinates change from external input (search bar, GPS, quick city)
   useEffect(() => {
-    if (mapInstanceRef.current && userLat && userLng && !selectedStationId) {
-      mapInstanceRef.current.setView([userLat, userLng], 13);
+    if (!mapInstanceRef.current || !userLat || !userLng) return;
+
+    // If change was triggered by map dragging, do NOT jump/reset view
+    if (lastMapDragCenterRef.current) {
+      const distFromDrag = DiscountEngine.calculateDistanceKm(
+        lastMapDragCenterRef.current.lat,
+        lastMapDragCenterRef.current.lng,
+        userLat,
+        userLng
+      );
+      if (distFromDrag < 0.05) {
+        lastMapDragCenterRef.current = null;
+        return;
+      }
     }
-  }, [userLat, userLng]);
+
+    // External change (Search bar, Quick city, GPS) -> smoothly pan to location
+    if (!selectedStationId) {
+      mapInstanceRef.current.setView([userLat, userLng], mapInstanceRef.current.getZoom() || 12);
+    }
+  }, [userLat, userLng, selectedStationId]);
 
   // Smooth Zoom-in to selected station when clicked from card
   useEffect(() => {
@@ -140,113 +174,79 @@ export default function MapView({
 
       L.marker([userLat, userLng], {
         icon: userIcon,
-        title: "Tu ubicación",
+        title: "Centro de búsqueda",
         zIndexOffset: 2000,
       })
         .addTo(markersGroupRef.current)
-        .bindPopup('<b class="text-white">📍 Tu Ubicación</b>');
+        .bindPopup('<b class="text-white">📍 Centro de Búsqueda</b>');
     }
 
     if (activeMode === "fuel") {
-      // ⛽ Fuel Station Markers
       stations.forEach((item, index) => {
         const isBest = index === 0;
-        const isSelected = selectedStationId === item.station.id;
-        const brandInfo = getBrandInfo(item.station.brand);
-
-        let pinClasses = "bg-white text-slate-900 border-slate-300 shadow-md";
-        let brandTagBg = brandInfo.primaryColor;
-        let brandTagText = "#ffffff";
-        let zIndex = 500 - index;
-
-        if (isBest) {
-          pinClasses =
-            "bg-[#00D97E] text-slate-950 font-black border-[#00B86B] shadow-xl shadow-[#00D97E]/30 scale-105 ring-2 ring-[#00D97E]/40";
-          brandTagBg = "#000000";
-          brandTagText = "#00D97E";
-          zIndex = 1500;
-        } else if (isSelected) {
-          pinClasses =
-            "bg-[#0075FF] text-white font-black border-[#0060d0] shadow-xl shadow-[#0075FF]/30 scale-105 ring-2 ring-[#0075FF]/40";
-          brandTagBg = "#ffffff";
-          brandTagText = "#0075FF";
-          zIndex = 1600;
-        }
-
-        const iconHtml = `
-          <div class="cursor-pointer transform transition-all hover:scale-125 hover:z-[9999]">
-            <div class="flex flex-col items-center">
-              <div class="px-2 py-0.5 rounded-full text-[11px] font-extrabold border flex items-center gap-1 whitespace-nowrap ${pinClasses}">
-                <span class="text-[8.5px] font-black uppercase px-1 rounded-full" style="background-color: ${brandTagBg}; color: ${brandTagText};">
-                  ${brandInfo.logoText.slice(0, 6)}
-                </span>
-                <span>${item.finalPrice.toFixed(3)} €</span>
-              </div>
-              <div class="w-1.5 h-1.5 rotate-45 -mt-0.5 border-r border-b ${pinClasses}"></div>
-            </div>
-          </div>
-        `;
+        const brandInfo = getBrandInfo(item.station.brand || item.station.rawBrand || "");
 
         const customIcon = L.divIcon({
-          className: "station-price-pin",
-          html: iconHtml,
-          iconSize: [68, 28],
-          iconAnchor: [34, 28],
+          className: "custom-fuel-marker",
+          html: `
+            <div class="relative group cursor-pointer transition-transform duration-300 hover:scale-110">
+              <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full ${
+                isBest
+                  ? "bg-gradient-to-r from-emerald-500 to-[#00D97E] text-slate-950 font-black shadow-lg shadow-emerald-500/50 ring-2 ring-white"
+                  : "bg-slate-900/90 dark:bg-black/90 text-white font-extrabold shadow-md border border-white/20"
+              } backdrop-blur-md">
+                <span class="w-2 h-2 rounded-full ${isBest ? "bg-black" : "bg-emerald-400"}"></span>
+                <span class="text-xs tracking-tight">${item.finalPrice.toFixed(3)} €</span>
+              </div>
+              <div class="w-2 h-2 ${isBest ? "bg-[#00D97E]" : "bg-slate-900 dark:bg-black"} rotate-45 mx-auto -mt-1 shadow-sm"></div>
+            </div>
+          `,
+          iconSize: [85, 32],
+          iconAnchor: [42, 32],
+          popupAnchor: [0, -32],
         });
 
         const marker = L.marker(
           [item.station.latitude, item.station.longitude],
           {
             icon: customIcon,
-            zIndexOffset: zIndex,
+            zIndexOffset: isBest ? 1000 : 100,
           },
         ).addTo(markersGroupRef.current!);
 
         markersMapRef.current.set(item.station.id, marker);
 
         const popupContent = `
-          <div class="p-3 min-w-[230px] text-white">
-            <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full" style="background-color: ${brandInfo.primaryColor}; color: #ffffff;">
-                  ${brandInfo.name}
-                </span>
-              </div>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                item.isOpenNow
-                  ? "bg-[#00D97E]/15 text-[#00D97E]"
-                  : "bg-rose-500/15 text-rose-400"
-              }">
-                ${item.isOpenNow ? "Abierto" : "Cerrado"}
-              </span>
+          <div class="p-3 bg-slate-900 text-white rounded-xl shadow-2xl border border-white/10 min-w-[220px]">
+            <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
+              <span class="font-black text-sm text-emerald-400">${brandInfo.name || item.station.name}</span>
+              ${isBest ? '<span class="px-2 py-0.5 text-[10px] font-black bg-[#00D97E] text-slate-950 rounded-full uppercase">Mejor Precio</span>' : ""}
             </div>
-            <p class="text-xs text-zinc-400 mb-3">${item.station.address}</p>
-            <div class="bg-black/60 p-2.5 rounded-xl border border-white/10 mb-3">
-              <div class="flex justify-between text-xs text-zinc-400">
-                <span>Oficial surtidor:</span>
-                <span class="${item.discountPerLiter > 0 ? "line-through text-zinc-400" : "text-white font-bold"}">${item.officialPrice.toFixed(3)} €/L</span>
+            <div class="text-xs text-zinc-300 mb-1">${item.station.address}</div>
+            <div class="text-[11px] text-zinc-400 mb-2">${item.station.locality || item.station.municipality} (${item.station.municipality})</div>
+            
+            <div class="bg-white/5 p-2 rounded-lg mb-2">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-zinc-400">Precio Surtidor:</span>
+                <span class="line-through text-zinc-400">${item.officialPrice.toFixed(3)} €/L</span>
               </div>
-              <div class="flex justify-between text-sm font-black text-[#00D97E] mt-0.5">
-                <span>Para ti:</span>
+              <div class="flex justify-between text-xs font-bold text-emerald-400">
+                <span>Precio con tus Descuentos:</span>
                 <span>${item.finalPrice.toFixed(3)} €/L</span>
               </div>
-              ${
-                item.discountPerLiter > 0
-                  ? `<div class="text-[11px] text-[#00D97E] font-medium mt-1">-${item.discountPerLiter.toFixed(3)} €/L (${item.appliedDiscountName || "Descuento"})</div>`
-                  : ""
-              }
+              <div class="flex justify-between text-[11px] text-zinc-300 mt-1 pt-1 border-t border-white/10">
+                <span>Coste Estimado Depósito:</span>
+                <span class="font-black text-white">${item.tankCostFinal.toFixed(2)} €</span>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-xs font-bold text-zinc-300 mb-3.5">
-              <span>Depósito (${item.tankCostFinal} €)</span>
-            </div>
+
             <a
               href="https://www.google.com/maps/dir/?api=1&destination=${item.station.latitude},${item.station.longitude}"
               target="_blank"
               rel="noopener noreferrer"
-              style="color: #ffffff !important; background-color: #0075FF !important; text-decoration: none !important;"
-              class="block w-full text-center text-white font-black text-xs py-2.5 px-4 rounded-full shadow-lg transition-transform hover:scale-[1.02]"
+              class="block w-full text-center font-bold text-xs py-1.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition-colors"
             >
-              Cómo llegar (${item.distanceKm} km) ↗
+              Cómo llegar (${item.distanceKm.toFixed(1)} km) ↗
             </a>
           </div>
         `;
@@ -256,65 +256,31 @@ export default function MapView({
           onSelectStation(item.station.id);
         });
       });
-
-      // Bounds fit for fuel stations
-      if (stations.length > 0 && !selectedStationId) {
-        const bounds = L.latLngBounds(
-          stations.map(
-            (s) =>
-              [s.station.latitude, s.station.longitude] as [number, number],
-          ),
-        );
-        if (userLat && userLng) bounds.extend([userLat, userLng]);
-        mapInstanceRef.current.fitBounds(bounds, {
-          padding: [35, 35],
-          maxZoom: 14,
-        });
-      }
     } else {
-      // ⚡ EV Charging Station Markers
       evStations.forEach((item, index) => {
         const isBest = index === 0;
-        const isSelected = selectedStationId === item.station.id;
-
-        // Pure vibrant green pins with NO border to distinguish EV from fuel
-        let pinClasses = "bg-[#00D97E] text-slate-950 font-black shadow-lg shadow-[#00D97E]/30 border-0";
-        let zIndex = 600 - index;
-
-        if (isBest) {
-          pinClasses =
-            "bg-[#00D97E] text-slate-950 font-black shadow-2xl shadow-[#00D97E]/60 scale-110 border-0 ring-2 ring-black/20";
-          zIndex = 1700;
-        } else if (isSelected) {
-          pinClasses =
-            "bg-[#00D97E] text-slate-950 font-black shadow-2xl scale-110 border-0 ring-2 ring-white";
-          zIndex = 1800;
-        }
-
-        const iconHtml = `
-          <div class="cursor-pointer transform transition-all hover:scale-125 hover:z-[9999]">
-            <div class="flex flex-col items-center">
-              <div class="px-2.5 py-0.5 rounded-full text-[11px] font-black flex items-center gap-1 whitespace-nowrap ${pinClasses}">
-                <span class="text-[10px]">⚡</span>
-                <span>${item.effectivePricePerKwh.toFixed(2)} €/kWh</span>
-              </div>
-              <div class="w-2 h-2 rotate-45 -mt-1 bg-[#00D97E]"></div>
-            </div>
-          </div>
-        `;
 
         const customIcon = L.divIcon({
-          className: "ev-station-pin",
-          html: iconHtml,
-          iconSize: [80, 28],
-          iconAnchor: [40, 28],
+          className: "custom-ev-marker",
+          html: `
+            <div class="relative group cursor-pointer transition-transform duration-300 hover:scale-110">
+              <div style="background-color: #00D97E !important; color: #000000 !important;" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-black text-xs shadow-md border-0 ring-0">
+                <span style="color: #000000 !important;" class="text-[12px]">⚡</span>
+                <span style="color: #000000 !important;" class="text-xs font-black tracking-tight">${item.effectivePricePerKwh.toFixed(2)} €/kWh</span>
+              </div>
+              <div style="background-color: #00D97E !important;" class="w-2 h-2 rotate-45 mx-auto -mt-1 shadow-sm border-0"></div>
+            </div>
+          `,
+          iconSize: [95, 32],
+          iconAnchor: [47, 32],
+          popupAnchor: [0, -32],
         });
 
         const marker = L.marker(
           [item.station.latitude, item.station.longitude],
           {
             icon: customIcon,
-            zIndexOffset: zIndex,
+            zIndexOffset: isBest ? 1000 : 100,
           },
         ).addTo(markersGroupRef.current!);
 
@@ -323,29 +289,34 @@ export default function MapView({
         const connectorsHtml = item.station.connectors
           .map(
             (c) =>
-              `<span class="inline-block bg-white/10 px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1">${c.type} (${c.availableCount}/${c.totalCount})</span>`,
+              `<span class="inline-block text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-cyan-300 font-mono mr-1 mb-1">${c.type} (${c.maxPowerKw}kW)</span>`,
           )
           .join("");
 
         const popupContent = `
-          <div class="p-3 min-w-[240px] text-white">
-            <div class="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
-              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                ${item.station.operatorName}
+          <div class="p-3.5 bg-slate-950 text-white rounded-2xl shadow-2xl border border-white/15 min-w-[260px]">
+            <div class="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
+              <div class="font-black text-sm text-cyan-400">${item.station.operatorName}</div>
+              <span class="px-2 py-0.5 text-[10px] font-black bg-cyan-500/20 text-cyan-300 rounded-full border border-cyan-500/30">
+                ${item.station.maxPowerKw} kW
               </span>
-              <span class="text-[10px] font-black text-cyan-400">⚡ ${item.station.maxPowerKw} kW</span>
             </div>
-            <h4 class="text-xs font-bold text-white mb-1">${item.station.name}</h4>
-            <p class="text-[11px] text-zinc-400 mb-2.5">${item.station.address}</p>
+            
+            <div class="font-bold text-xs text-zinc-200 mb-1">${item.station.name}</div>
+            <div class="text-[11px] text-zinc-400 mb-2">${item.station.address} (${item.station.municipality})</div>
 
-            <div class="bg-black/60 p-2.5 rounded-xl border border-white/10 mb-3 space-y-1">
-              <div class="flex justify-between text-xs text-zinc-300">
-                <span>Precio:</span>
-                <span class="font-black text-[#00D97E] text-sm">${item.effectivePricePerKwh.toFixed(2)} €/kWh</span>
+            <div class="bg-white/5 p-2.5 rounded-xl mb-3 border border-white/5">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-zinc-400">Tarifa oficial:</span>
+                <span class="text-zinc-300">${item.officialPricePerKwh.toFixed(2)} €/kWh</span>
               </div>
-              <div class="flex justify-between text-[11px] text-zinc-400">
-                <span>Carga estimada (${item.sessionKwh} kWh):</span>
-                <span class="font-bold text-white">${item.sessionCostEffective.toFixed(2)} €</span>
+              <div class="flex justify-between text-xs font-bold text-cyan-400">
+                <span>Tu tarifa efectiva:</span>
+                <span>${item.effectivePricePerKwh.toFixed(2)} €/kWh</span>
+              </div>
+              <div class="flex justify-between text-[11px] text-white mt-1 pt-1 border-t border-white/10 font-bold">
+                <span>Sesión (${item.sessionKwh} kWh):</span>
+                <span class="text-cyan-300">${item.sessionCostEffective.toFixed(2)} €</span>
               </div>
               <div class="flex justify-between text-[11px] text-cyan-400">
                 <span>Tiempo de recarga:</span>
@@ -375,21 +346,6 @@ export default function MapView({
           onSelectStation(item.station.id);
         });
       });
-
-      // Bounds fit for EV stations
-      if (evStations.length > 0 && !selectedStationId) {
-        const bounds = L.latLngBounds(
-          evStations.map(
-            (s) =>
-              [s.station.latitude, s.station.longitude] as [number, number],
-          ),
-        );
-        if (userLat && userLng) bounds.extend([userLat, userLng]);
-        mapInstanceRef.current.fitBounds(bounds, {
-          padding: [35, 35],
-          maxZoom: 14,
-        });
-      }
     }
   }, [
     stations,
@@ -403,6 +359,14 @@ export default function MapView({
 
   return (
     <div className="relative w-full h-full min-h-[380px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10">
+      {/* Live sync indicator badge */}
+      {isLoading && (
+        <div className="absolute top-4 left-4 z-[1000] px-3.5 py-1.5 bg-slate-950/85 backdrop-blur-md border border-white/15 text-white font-bold text-xs rounded-full shadow-xl flex items-center gap-2 animate-in fade-in duration-150">
+          <Loader2 className="w-3.5 h-3.5 text-[#00D97E] animate-spin" />
+          <span>Buscando estaciones en esta zona...</span>
+        </div>
+      )}
+
       <div ref={mapContainerRef} className="w-full h-full z-0" />
     </div>
   );

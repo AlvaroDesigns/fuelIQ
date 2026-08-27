@@ -566,6 +566,12 @@ export default function FuelIQHome() {
               onSelectStation={handleSelectStation}
               userLat={userLat}
               userLng={userLng}
+              onLocationChange={(newLat, newLng) => {
+                setUserLat(newLat);
+                setUserLng(newLng);
+                setSelectedCityName('');
+              }}
+              isLoading={isLoading}
             />
           </div>
         </section>
