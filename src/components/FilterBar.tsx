@@ -218,22 +218,25 @@ export default function FilterBar({
       </div>
 
       {/* ============================================================ */}
-      {/* 📱 MOBILE FILTERS MODAL / BOTTOM SHEET                       */}
+      {/* 📱 MOBILE FILTERS MODAL (100% Fullscreen View)              */}
       {/* ============================================================ */}
       {isMobileModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 dark:bg-black/80 backdrop-blur-xl animate-fade-in md:hidden p-0 sm:p-4">
-          <div className="bg-white dark:bg-[#0c0f16] border-t sm:border border-slate-200 dark:border-white/15 text-slate-900 dark:text-white rounded-t-[2.5rem] sm:rounded-[2.5rem] w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-slide-up">
+        <div className="fixed inset-0 z-50 w-full h-full bg-[#f6f8fb] dark:bg-[#04060a] flex flex-col overflow-hidden animate-fade-in md:hidden transition-colors">
+          <div className="w-full h-full flex flex-col overflow-hidden text-slate-900 dark:text-white">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between bg-slate-50/50 dark:bg-black/40">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-black flex items-center justify-center">
-                  <SlidersHorizontal className="w-4 h-4" />
-                </div>
+            <div className="sticky top-0 z-10 px-5 py-4 border-b border-black/10 dark:border-white/10 flex items-center justify-between bg-white/90 dark:bg-black/90 backdrop-blur-2xl">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setIsMobileModalOpen(false)}
+                  className="p-2 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <div>
-                  <h3 className="font-black text-base text-slate-900 dark:text-white">
+                  <h3 className="font-black text-base text-slate-950 dark:text-white">
                     Filtros de Búsqueda
                   </h3>
-                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">
                     Ajusta tu radio, combustible y vehículo
                   </p>
                 </div>
@@ -241,7 +244,7 @@ export default function FilterBar({
 
               <button
                 onClick={() => setIsMobileModalOpen(false)}
-                className="p-2 rounded-full text-slate-400 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
+                className="p-2 rounded-full text-slate-400 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>

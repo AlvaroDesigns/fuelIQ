@@ -17,6 +17,7 @@ import {
   Calendar,
   Layers,
   Fuel,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface Props {
@@ -94,41 +95,47 @@ export default function DiscountManagerModal({
     activeTab === 'coupons' ? couponRules : activeTab === 'cards' ? cardRules : planRules;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-2xl animate-fade-in">
-      <div className="bg-white dark:bg-[#080a0f] border border-black/10 dark:border-white/10 text-slate-900 dark:text-white rounded-[2.5rem] w-full max-w-2xl max-h-[92vh] overflow-hidden flex flex-col shadow-2xl transition-colors">
-        {/* Header */}
-        <div className="border-b border-black/5 dark:border-white/5 p-6 flex items-center justify-between bg-slate-50/50 dark:bg-black/40">
+    <div className="fixed inset-0 z-50 w-full h-full bg-[#f6f8fb] dark:bg-[#04060a] flex flex-col overflow-hidden animate-fade-in transition-colors">
+      {/* Top Navigation Header (100% full width) */}
+      <header className="sticky top-0 z-20 w-full border-b border-black/10 dark:border-white/10 bg-white/90 dark:bg-black/90 backdrop-blur-2xl px-4 sm:px-8 py-4">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-[#00D97E] via-[#0075FF] to-[#8000FF] p-0.5 flex items-center justify-center shadow-lg shadow-[#00D97E]/15">
-              <div className="w-full h-full bg-white dark:bg-black rounded-[14px] flex items-center justify-center">
-                <Ticket className="w-5 h-5 text-[#00D97E]" />
-              </div>
-            </div>
+            <button
+              onClick={onClose}
+              className="p-2.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-white/10 transition-all shadow-sm"
+              aria-label="Cerrar modal"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
             <div>
-              <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+              <h1 className="text-lg sm:text-xl font-black tracking-tight text-slate-950 dark:text-white flex items-center gap-2">
+                <Ticket className="w-5 h-5 text-[#00D97E]" />
                 Cupones & Tarjetas de Fidelización
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium">
-                Combina cupones Waylet, Cepsa Gow, BPme o tarjetas de flota
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium hidden sm:block">
+                Activa tus ventajas de Repsol Waylet, Cepsa Gow, BPme o añade tus cupones
               </p>
             </div>
           </div>
+
           <button
             onClick={onClose}
-            className="p-2.5 rounded-full text-slate-400 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            className="p-2.5 rounded-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+      </header>
 
-        {/* Category Tabs (Waylet aesthetic: Saldo, Cupones, Retos, Planes) */}
-        <div className="flex items-center border-b border-black/5 dark:border-white/10 px-6 bg-slate-50/30 dark:bg-white/[0.01]">
+      {/* Fullscreen Category Tabs */}
+      <div className="border-b border-black/5 dark:border-white/10 bg-white/70 dark:bg-[#0c0f16]/90 backdrop-blur-xl px-4 sm:px-8">
+        <div className="max-w-4xl mx-auto flex items-center gap-2 overflow-x-auto scrollbar-none">
           <button
             onClick={() => setActiveTab('coupons')}
-            className={`py-3.5 px-4 font-bold text-xs transition-all relative flex items-center gap-2 ${
+            className={`py-4 px-4 font-bold text-xs sm:text-sm transition-all relative flex items-center gap-2 shrink-0 ${
               activeTab === 'coupons'
                 ? 'text-[#00A860] dark:text-[#00D97E] border-b-2 border-[#00D97E] font-black'
-                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Ticket className="w-4 h-4" />
@@ -137,10 +144,10 @@ export default function DiscountManagerModal({
 
           <button
             onClick={() => setActiveTab('cards')}
-            className={`py-3.5 px-4 font-bold text-xs transition-all relative flex items-center gap-2 ${
+            className={`py-4 px-4 font-bold text-xs sm:text-sm transition-all relative flex items-center gap-2 shrink-0 ${
               activeTab === 'cards'
                 ? 'text-[#00A860] dark:text-[#00D97E] border-b-2 border-[#00D97E] font-black'
-                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <CreditCard className="w-4 h-4" />
@@ -149,19 +156,21 @@ export default function DiscountManagerModal({
 
           <button
             onClick={() => setActiveTab('plans')}
-            className={`py-3.5 px-4 font-bold text-xs transition-all relative flex items-center gap-2 ${
+            className={`py-4 px-4 font-bold text-xs sm:text-sm transition-all relative flex items-center gap-2 shrink-0 ${
               activeTab === 'plans'
                 ? 'text-[#00A860] dark:text-[#00D97E] border-b-2 border-[#00D97E] font-black'
-                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
+                : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Zap className="w-4 h-4" />
             <span>Planes de Energía ({planRules.filter((d) => d.active).length})</span>
           </button>
         </div>
+      </div>
 
-        {/* Content list */}
-        <div className="p-6 overflow-y-auto space-y-4 flex-1">
+      {/* Main Full-Height Scrollable Content */}
+      <main className="flex-1 overflow-y-auto px-4 sm:px-8 py-6">
+        <div className="max-w-4xl mx-auto space-y-4">
           <div className="space-y-3.5">
             {currentList.map((rule) => {
               const isCoupon = rule.category === 'coupon' || rule.id.includes('coupon');
@@ -178,15 +187,15 @@ export default function DiscountManagerModal({
                   {/* Waylet Coupon Ticket Notches on left border if coupon */}
                   {isCoupon && (
                     <>
-                      <div className="absolute -left-2.5 top-1/2 -mt-2.5 w-5 h-5 rounded-full bg-slate-50 dark:bg-[#080a0f] border-r border-slate-300 dark:border-white/20" />
+                      <div className="absolute -left-2.5 top-1/2 -mt-2.5 w-5 h-5 rounded-full bg-[#f6f8fb] dark:bg-[#04060a] border-r border-slate-300 dark:border-white/20" />
                     </>
                   )}
 
-                  <div className="p-5 flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3.5 flex-1">
+                  <div className="p-5 sm:p-6 flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3.5 sm:gap-4 flex-1">
                       {/* Visual Icon */}
                       <div
-                        className={`w-11 h-11 rounded-2xl flex items-center justify-center border text-xs font-black uppercase tracking-wider shrink-0 ${
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center border text-xs font-black uppercase tracking-wider shrink-0 ${
                           rule.active
                             ? 'bg-[#00D97E]/10 dark:bg-black/60 border-[#00D97E]/30 dark:border-white/10 text-[#00A860] dark:text-[#00D97E] shadow-sm'
                             : 'bg-slate-200 dark:bg-black/40 border-slate-300 dark:border-white/5 text-slate-400 dark:text-zinc-600'
@@ -197,7 +206,7 @@ export default function DiscountManagerModal({
 
                       <div className="space-y-1.5 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-black text-sm text-slate-950 dark:text-white tracking-tight">
+                          <span className="font-black text-sm sm:text-base text-slate-950 dark:text-white tracking-tight">
                             {rule.name}
                           </span>
                           <span className="bg-slate-200/80 dark:bg-white/10 border border-slate-300/80 dark:border-white/15 text-slate-800 dark:text-zinc-200 text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full">
@@ -210,7 +219,7 @@ export default function DiscountManagerModal({
                           )}
                         </div>
 
-                        <p className="text-xs text-slate-600 dark:text-zinc-400 font-medium leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 font-medium leading-relaxed max-w-2xl">
                           {rule.description}
                         </p>
 
@@ -219,7 +228,7 @@ export default function DiscountManagerModal({
                             {rule.maxLiters && <span>Hasta {rule.maxLiters}L</span>}
                             {rule.expiresAt && (
                               <span className="flex items-center gap-1 text-slate-600 dark:text-zinc-400">
-                                <Calendar className="w-3 h-3 text-[#00A860] dark:text-[#00D97E]" />
+                                <Calendar className="w-3.5 h-3.5 text-[#00A860] dark:text-[#00D97E]" />
                                 {rule.expiresAt}
                               </span>
                             )}
@@ -230,7 +239,7 @@ export default function DiscountManagerModal({
 
                     {/* Value editor + Toggle Switch */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className="flex items-center bg-white dark:bg-black/80 border border-slate-200 dark:border-white/10 rounded-2xl px-3 py-1.5 text-xs font-bold shadow-sm">
+                      <div className="flex items-center bg-slate-100 dark:bg-black/80 border border-slate-300 dark:border-white/15 rounded-2xl px-3 py-2 text-xs font-bold shadow-sm">
                         <span className="text-[#00A860] dark:text-[#00D97E] mr-1">-</span>
                         <input
                           type="number"
@@ -246,7 +255,7 @@ export default function DiscountManagerModal({
                           }}
                           className="w-12 bg-transparent text-right font-black text-[#00A860] dark:text-[#00D97E] focus:outline-none"
                         />
-                        <span className="text-slate-500 dark:text-zinc-400 ml-1 text-[11px]">
+                        <span className="text-slate-600 dark:text-zinc-400 ml-1 text-[11px]">
                           {rule.discountType === 'PERCENTAGE' ? '%' : '€/L'}
                         </span>
                       </div>
@@ -254,8 +263,8 @@ export default function DiscountManagerModal({
                       {/* Sleek Toggle Switch */}
                       <button
                         onClick={() => handleToggleRule(rule.id)}
-                        className={`w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 ${
-                          rule.active ? 'bg-[#00D97E]' : 'bg-slate-300 dark:bg-zinc-800 border border-black/5 dark:border-white/10'
+                        className={`w-12 h-7 rounded-full transition-colors relative flex items-center px-1 ${
+                          rule.active ? 'bg-[#00D97E]' : 'bg-slate-300 dark:bg-zinc-800 border border-black/10 dark:border-white/10'
                         }`}
                       >
                         <div
@@ -268,7 +277,7 @@ export default function DiscountManagerModal({
                       {rule.isCustom && (
                         <button
                           onClick={() => handleDeleteRule(rule.id)}
-                          className="p-2 rounded-xl text-slate-400 dark:text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                          className="p-2.5 rounded-xl text-slate-400 dark:text-zinc-500 hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -284,44 +293,44 @@ export default function DiscountManagerModal({
           {showAddCustom ? (
             <form
               onSubmit={handleAddCustomRule}
-              className="p-5 rounded-3xl bg-slate-50 dark:bg-black/80 border border-slate-200 dark:border-white/15 space-y-4 animate-fade-in"
+              className="p-6 rounded-3xl bg-white dark:bg-[#0c0f16] border border-slate-300 dark:border-white/15 space-y-4 shadow-xl animate-fade-in"
             >
               <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <span className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
                   <Tag className="w-4 h-4 text-[#00D97E]" /> Añadir Nuevo Cupón o Promoción
                 </span>
                 <Button
                   variant="outline"
                   onPress={() => setShowAddCustom(false)}
-                  className="text-xs text-slate-500 dark:text-zinc-400 h-7 border-slate-200 dark:border-white/10"
+                  className="text-xs text-slate-500 dark:text-zinc-400 h-8 border-slate-200 dark:border-white/10 rounded-full"
                 >
                   Cancelar
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
                     Título del cupón
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ej. 10cts./l de descuento en carburante"
+                    placeholder="Ej. 10cts./l en carburante Repsol Más"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    className="w-full bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
+                    className="w-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
                     Marca
                   </label>
                   <select
                     value={customBrand}
                     onChange={(e) => setCustomBrand(e.target.value)}
-                    className="w-full bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
+                    className="w-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
                   >
                     <option value="REPSOL" className="bg-white dark:bg-[#0f1117]">Repsol (Waylet)</option>
                     <option value="CEPSA" className="bg-white dark:bg-[#0f1117]">Cepsa / Moeve (Gow)</option>
@@ -336,13 +345,13 @@ export default function DiscountManagerModal({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
                     Tipo de beneficio
                   </label>
                   <select
                     value={customType}
                     onChange={(e) => setCustomType(e.target.value as DiscountType)}
-                    className="w-full bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
+                    className="w-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
                   >
                     <option value="FIXED_PER_LITER" className="bg-white dark:bg-[#0f1117]">Descuento directo (€/Litro)</option>
                     <option value="PERCENTAGE" className="bg-white dark:bg-[#0f1117]">Porcentaje (%)</option>
@@ -351,7 +360,7 @@ export default function DiscountManagerModal({
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
+                  <label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-zinc-400 block mb-1">
                     Valor ({customType === 'PERCENTAGE' ? '%' : '€/L'})
                   </label>
                   <input
@@ -362,7 +371,7 @@ export default function DiscountManagerModal({
                     placeholder="0.10"
                     value={customValue}
                     onChange={(e) => setCustomValue(e.target.value)}
-                    className="w-full bg-white dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
+                    className="w-full bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/10 rounded-2xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-[#00D97E] font-medium"
                   />
                 </div>
               </div>
@@ -371,7 +380,7 @@ export default function DiscountManagerModal({
                 <Button
                   variant="primary"
                   type="submit"
-                  className="bg-[#00D97E] text-black font-black text-xs rounded-full px-5 h-9 shadow-md"
+                  className="bg-[#00D97E] text-black font-black text-xs rounded-full px-6 h-10 shadow-md"
                 >
                   Guardar Cupón
                 </Button>
@@ -381,27 +390,33 @@ export default function DiscountManagerModal({
             <button
               type="button"
               onClick={() => setShowAddCustom(true)}
-              className="w-full py-4 px-4 rounded-3xl border-2 border-dashed border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white flex items-center justify-center gap-2 text-xs font-bold transition-all bg-slate-50 dark:bg-white/[0.01] hover:bg-slate-100 dark:hover:bg-white/[0.03]"
+              className="w-full py-5 px-6 rounded-3xl border-2 border-dashed border-slate-300 dark:border-white/15 hover:border-slate-400 dark:hover:border-white/30 text-slate-700 dark:text-zinc-300 hover:text-slate-950 dark:hover:text-white flex items-center justify-center gap-2 text-xs sm:text-sm font-bold transition-all bg-white dark:bg-white/[0.01] hover:bg-slate-50 dark:hover:bg-white/[0.03] shadow-sm"
             >
-              <Plus className="w-4 h-4 text-[#00A860] dark:text-[#00D97E]" /> Añadir cupón promocional o tarjeta
+              <Plus className="w-5 h-5 text-[#00A860] dark:text-[#00D97E]" /> Añadir cupón promocional o tarjeta
             </button>
           )}
         </div>
+      </main>
 
-        {/* Footer */}
-        <div className="border-t border-black/5 dark:border-white/5 p-6 bg-slate-50/80 dark:bg-black/40 flex items-center justify-between">
-          <span className="text-xs text-slate-600 dark:text-zinc-400 font-medium">
-            {discounts.filter((d) => d.active).length} beneficios activos aplicados
-          </span>
+      {/* Sticky Bottom Full-Width Action Bar */}
+      <footer className="sticky bottom-0 z-20 w-full border-t border-black/10 dark:border-white/10 bg-white/95 dark:bg-black/95 backdrop-blur-2xl px-4 sm:px-8 py-4 shadow-2xl">
+        <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
+          <div className="text-xs sm:text-sm text-slate-700 dark:text-zinc-300 font-medium">
+            <span className="font-black text-slate-950 dark:text-white">
+              {discounts.filter((d) => d.active).length} beneficios activos
+            </span>{' '}
+            aplicados al cálculo
+          </div>
           <Button
             variant="primary"
             onPress={onClose}
-            className="bg-slate-900 text-white dark:bg-white dark:text-black font-black text-xs rounded-full px-6 h-10 shadow-lg hover:bg-slate-800 dark:hover:bg-zinc-200 transition-all"
+            className="bg-slate-950 text-white dark:bg-white dark:text-black font-black text-xs sm:text-sm rounded-full px-8 h-12 shadow-2xl hover:bg-slate-800 dark:hover:bg-zinc-200 transition-all flex items-center gap-2"
           >
-            Aplicar y Recalcular
+            <Check className="w-4 h-4" />
+            <span>Aplicar y Recalcular</span>
           </Button>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
