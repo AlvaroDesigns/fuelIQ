@@ -13,6 +13,7 @@ import {
   Sparkles,
   Loader2,
   Navigation,
+  Crosshair,
 } from 'lucide-react';
 
 interface Props {
@@ -137,146 +138,162 @@ export default function FilterBar({
   };
 
   return (
-    <div className="revolut-card rounded-[2rem] p-5 sm:p-6 space-y-5">
-      {/* Top Row: Location & CP Search Bar + GPS Button */}
+    <div className="revolut-card rounded-[2.5rem] p-6 sm:p-7 space-y-6">
+      {/* Top Search & Filter Bar (Unified Revolut Command Strip) */}
       <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
-        {/* Search input + GPS button */}
-        <div className="flex items-center gap-2.5 flex-1 flex-wrap sm:flex-nowrap">
-          <Button
-            variant="outline"
-            onPress={onLocateUser}
-            className="bg-[#0075FF]/10 hover:bg-[#0075FF]/20 text-[#0075FF] border-[#0075FF]/30 font-bold text-xs rounded-full h-11 px-4 transition-all flex items-center gap-2 shadow-sm"
-          >
-            <Locate className={`w-4 h-4 ${isLocating ? 'animate-spin' : ''}`} />
-            <span>{isLocating ? 'Obteniendo...' : 'Mi GPS'}</span>
-          </Button>
-
-          {/* Autocomplete Input Container */}
-          <div ref={searchContainerRef} className="relative flex-1 min-w-[240px]">
-            <div className="relative flex items-center">
-              <Search className="w-4 h-4 text-slate-400 dark:text-zinc-400 absolute left-4 pointer-events-none" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={(e) => {
-                  setSearchInput(e.target.value);
-                  setIsDropdownOpen(true);
-                }}
-                onFocus={() => {
-                  if (searchResults.length > 0) setIsDropdownOpen(true);
-                }}
-                placeholder="Buscar por Código Postal (ej. 07001, 28001), Ciudad o Calle..."
-                className="w-full bg-slate-100 dark:bg-black/60 border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 focus:border-[#00D97E] text-slate-900 dark:text-white text-xs font-semibold rounded-full pl-11 pr-10 py-3 focus:outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-zinc-500 shadow-inner"
-              />
-              {isSearching ? (
-                <Loader2 className="w-4 h-4 text-[#00D97E] animate-spin absolute right-4 pointer-events-none" />
-              ) : searchInput ? (
-                <button
-                  onClick={() => {
-                    setSearchInput('');
-                    setSearchResults([]);
-                  }}
-                  className="absolute right-4 text-slate-400 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              ) : null}
+        {/* Unified Search Omnibox */}
+        <div ref={searchContainerRef} className="relative flex-1">
+          <div className="relative flex items-center bg-slate-100/90 dark:bg-black/70 border border-slate-200 dark:border-white/15 hover:border-slate-300 dark:hover:border-white/30 focus-within:border-[#0075FF] focus-within:ring-2 focus-within:ring-[#0075FF]/20 rounded-full transition-all p-1.5 shadow-sm">
+            {/* Search Icon */}
+            <div className="pl-3.5 pr-2 text-slate-400 dark:text-zinc-400">
+              <Search className="w-4 h-4" />
             </div>
 
-            {/* Current Active Location Badge */}
-            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400 px-3">
-              <MapPin className="w-3.5 h-3.5 text-[#00D97E]" />
-              <span>Ubicación activa:</span>
-              <span className="text-slate-900 dark:text-white font-bold">{selectedCityName}</span>
-            </div>
+            {/* Main Input */}
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => {
+                setSearchInput(e.target.value);
+                setIsDropdownOpen(true);
+              }}
+              onFocus={() => {
+                if (searchResults.length > 0) setIsDropdownOpen(true);
+              }}
+              placeholder="Buscar por Código Postal (ej. 07001, 28001), municipio o calle..."
+              className="flex-1 bg-transparent text-slate-900 dark:text-white text-xs sm:text-sm font-semibold focus:outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-500 py-2 pr-3"
+            />
 
-            {/* Autocomplete Dropdown */}
-            {isDropdownOpen && searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-[#0c0f16] border border-black/10 dark:border-white/15 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-2xl animate-fade-in max-h-72 overflow-y-auto">
-                <div className="p-2 space-y-1">
-                  <div className="px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
-                    Resultados de Ubicación / Código Postal
-                  </div>
-                  {searchResults.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSelectLocation(item)}
-                      className="w-full text-left p-3 rounded-2xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center justify-between gap-3 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-zinc-400 group-hover:text-[#00D97E] transition-colors">
-                          <MapPin className="w-4 h-4" />
+            {/* Clear button if typed */}
+            {searchInput && (
+              <button
+                onClick={() => {
+                  setSearchInput('');
+                  setSearchResults([]);
+                }}
+                className="p-1.5 text-slate-400 dark:text-zinc-500 hover:text-slate-900 dark:hover:text-white rounded-full mr-1 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Spinner if searching */}
+            {isSearching && (
+              <Loader2 className="w-4 h-4 text-[#0075FF] animate-spin mr-2" />
+            )}
+
+            {/* Integrated GPS Locate Pill Button */}
+            <button
+              onClick={onLocateUser}
+              className="flex items-center gap-1.5 bg-[#0075FF] hover:bg-[#0060d0] text-white font-bold text-xs px-4 py-2 rounded-full shadow-md transition-transform active:scale-95 shrink-0"
+            >
+              <Locate className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
+              <span>{isLocating ? 'Buscando...' : 'Mi GPS'}</span>
+            </button>
+          </div>
+
+          {/* Autocomplete Dropdown List */}
+          {isDropdownOpen && searchResults.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-white dark:bg-[#0c0f16] border border-slate-200 dark:border-white/15 rounded-3xl shadow-2xl overflow-hidden backdrop-blur-2xl animate-fade-in max-h-72 overflow-y-auto">
+              <div className="p-2 space-y-1">
+                <div className="px-3.5 py-2 text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                  Ubicaciones encontradas en España
+                </div>
+                {searchResults.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleSelectLocation(item)}
+                    className="w-full text-left p-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors flex items-center justify-between gap-3 group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-500 dark:text-zinc-400 group-hover:text-[#0075FF] transition-colors">
+                        <MapPin className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#0075FF] transition-colors line-clamp-1">
+                          {item.displayName}
                         </div>
-                        <div>
-                          <div className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-[#00D97E] transition-colors line-clamp-1">
-                            {item.displayName}
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-zinc-400">
-                            {item.province ? `${item.province}, España` : 'España'}
-                          </div>
+                        <div className="text-[11px] text-slate-500 dark:text-zinc-400">
+                          {item.province ? `${item.province}, España` : 'España'}
                         </div>
                       </div>
+                    </div>
 
-                      {item.postalCode && (
-                        <span className="bg-[#00D97E]/15 text-[#00A860] dark:text-[#00D97E] font-black text-[10px] h-5 px-2 py-0.5 rounded-full flex items-center">
-                          CP {item.postalCode}
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
+                    {item.postalCode && (
+                      <span className="bg-[#0075FF]/10 text-[#0075FF] font-black text-[10px] h-5 px-2.5 py-0.5 rounded-full flex items-center">
+                        CP {item.postalCode}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
 
-        {/* Radius Segmented Pills */}
-        <div className="flex items-center gap-1 bg-slate-100 dark:bg-black/60 border border-black/10 dark:border-white/10 p-1 rounded-full self-start lg:self-auto shadow-inner">
-          <span className="text-[11px] font-bold text-slate-500 dark:text-zinc-500 px-3 uppercase tracking-wider hidden sm:inline">
-            Radio
+        {/* Radius Segmented Pills (iOS / Revolut style) */}
+        <div className="flex items-center bg-slate-100 dark:bg-black/70 border border-slate-200 dark:border-white/15 p-1 rounded-full self-start lg:self-auto shrink-0 shadow-sm">
+          <span className="text-[11px] font-black text-slate-400 dark:text-zinc-500 pl-3 pr-2 uppercase tracking-wider hidden sm:inline">
+            Radio:
           </span>
           {[5, 10, 15, 25, 50].map((r) => (
             <button
               key={r}
               onClick={() => onSelectRadius(r)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all ${
                 radius === r
-                  ? 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-md'
+                  ? 'bg-slate-900 dark:bg-white text-white dark:text-black shadow-md scale-[1.02]'
                   : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              {r}km
+              {r} km
             </button>
           ))}
         </div>
       </div>
 
-      {/* Quick City Presets Pills */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-zinc-500 whitespace-nowrap mr-1">
-          Ciudades:
-        </span>
-        {QUICK_CITIES.map((c) => (
-          <button
-            key={c.name}
-            onClick={() => onSelectCity(`${c.name} (CP ${c.cp})`, c.lat, c.lng)}
-            className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
-              selectedCityName.includes(c.name)
-                ? 'bg-[#00D97E]/15 text-[#00A860] dark:text-[#00D97E] border-[#00D97E]/40 font-black'
-                : 'bg-black/[0.03] dark:bg-white/[0.02] border-black/5 dark:border-white/5 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:border-black/15 dark:hover:border-white/15'
-            }`}
-          >
-            {c.name} <span className="opacity-60 text-[10px]">({c.cp})</span>
-          </button>
-        ))}
+      {/* Active Location Info Pill + Quick Cities Strip */}
+      <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-slate-200/60 dark:border-white/5">
+        {/* Active location indicator */}
+        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#00D97E]/10 border border-[#00D97E]/30 text-xs text-slate-800 dark:text-zinc-200 font-medium">
+          <span className="w-2 h-2 rounded-full bg-[#00D97E] animate-pulse" />
+          <span>Zona activa:</span>
+          <span className="font-black text-slate-950 dark:text-white">{selectedCityName}</span>
+        </div>
+
+        {/* Quick City Presets */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-zinc-500 whitespace-nowrap mr-1">
+            Accesos directos:
+          </span>
+          {QUICK_CITIES.map((c) => {
+            const isSelected = selectedCityName.includes(c.name);
+            return (
+              <button
+                key={c.name}
+                onClick={() => onSelectCity(`${c.name} (CP ${c.cp})`, c.lat, c.lng)}
+                className={`px-3 py-1 rounded-full text-[11px] font-bold whitespace-nowrap transition-all border ${
+                  isSelected
+                    ? 'bg-slate-900 dark:bg-white text-white dark:text-black border-slate-900 dark:border-white shadow-sm font-black'
+                    : 'bg-slate-100/80 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20'
+                }`}
+              >
+                {c.name} <span className="opacity-60 text-[10px]">({c.cp})</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Fuel Type Segmented Selector */}
-      <div>
-        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-2.5 flex items-center justify-between">
-          <span>Tipo de Carburante</span>
-          <span className="text-slate-400 dark:text-zinc-500 font-normal">Precios oficiales MITECO normalizados</span>
+      <div className="space-y-2.5">
+        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 flex items-center justify-between">
+          <span className="flex items-center gap-1.5 font-black text-slate-700 dark:text-zinc-300">
+            <Fuel className="w-3.5 h-3.5 text-[#00D97E]" /> Tipo de Carburante
+          </span>
+          <span className="text-slate-400 dark:text-zinc-500 font-medium text-[11px]">Precios oficiales MITECO</span>
         </div>
+
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {primaryFuels.map((ft) => {
             const info = FUEL_TYPES[ft];
@@ -285,14 +302,14 @@ export default function FilterBar({
               <button
                 key={ft}
                 onClick={() => onSelectFuel(ft)}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all border ${
+                className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all border ${
                   isSelected
                     ? 'bg-slate-900 dark:bg-white text-white dark:text-black border-slate-900 dark:border-white shadow-lg scale-[1.02]'
-                    : 'bg-black/[0.03] dark:bg-white/[0.03] border-black/10 dark:border-white/10 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-black/20 dark:hover:border-white/20'
+                    : 'bg-slate-100/80 dark:bg-white/[0.03] border-slate-200 dark:border-white/10 text-slate-700 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-white/20'
                 }`}
               >
                 <span
-                  className="w-2.5 h-2.5 rounded-full ring-2 ring-black/20 dark:ring-black/40"
+                  className="w-2.5 h-2.5 rounded-full ring-2 ring-black/10 dark:ring-black/40"
                   style={{ backgroundColor: info.color }}
                 />
                 <span>{info.shortLabel}</span>
@@ -302,10 +319,10 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* Bottom Row: Slider & Sort */}
-      <div className="pt-4 border-t border-black/5 dark:border-white/5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5">
+      {/* Bottom Row: Deposit Slider & Sorting Criteria */}
+      <div className="pt-4 border-t border-slate-200/60 dark:border-white/5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-5">
         {/* Tank Capacity Slider */}
-        <div className="flex items-center gap-4 bg-black/[0.02] dark:bg-white/[0.02] border border-black/10 dark:border-white/10 p-3.5 rounded-2xl flex-1 max-w-xl shadow-inner">
+        <div className="flex items-center gap-4 bg-slate-100/70 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 p-3.5 rounded-2xl flex-1 max-w-xl shadow-inner">
           <div className="w-9 h-9 rounded-xl bg-[#00D97E]/10 flex items-center justify-center text-[#00D97E]">
             <Fuel className="w-5 h-5" />
           </div>
@@ -334,7 +351,7 @@ export default function FilterBar({
           <select
             value={sortBy}
             onChange={(e) => onChangeSortBy(e.target.value as any)}
-            className="bg-white dark:bg-black/80 border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 text-xs font-bold text-slate-900 dark:text-white rounded-full px-4 py-2 focus:outline-none focus:border-[#00D97E] transition-all cursor-pointer shadow-sm"
+            className="bg-white dark:bg-black/80 border border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20 text-xs font-bold text-slate-900 dark:text-white rounded-full px-4 py-2.5 focus:outline-none focus:border-[#00D97E] transition-all cursor-pointer shadow-sm"
           >
             <option value="finalPrice" className="bg-white dark:bg-[#0f1117] text-slate-900 dark:text-white">⭐ Mejor precio para ti (€/L)</option>
             <option value="tankSaving" className="bg-white dark:bg-[#0f1117] text-slate-900 dark:text-white">💰 Mayor ahorro total (€)</option>
